@@ -16,3 +16,6 @@
 $router->get('/', function () use ($router) {
     return $router->app->version();
 });
+
+// Telegram webhook
+$router->post('/webhook', 'MainController@handler');
