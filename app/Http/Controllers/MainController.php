@@ -2,23 +2,19 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\TelegramService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use App\Services\Telegram\TelegramApiService;
+use App\Services\Telegram\TelegramMessageHandlerService;
+use App\Services\Telegram\TelegramKeyboardService;
 
-/**
- * Основной контроллер для обработки Telegram webhook
- */
 class MainController extends Controller
 {
-    private TelegramService $telegramService;
+    private TelegramApiService $telegramApiService;
 
-    /**
-     * MainController конструктор
-     */
     public function __construct()
     {
-        $this->telegramService = new TelegramService();
+        $this->telegramApiService = new TelegramApiService();
     }
 
     /**
@@ -33,6 +29,13 @@ class MainController extends Controller
             $update = $request->all();
             
             Log::info('Telegram webhook received', ['update' => $update]);
+
+            // Проверяем наличие callback_query в обновлении
+            if (isset($update['callback_query'])) {
+                (new TelegramMessageHandlerService())->handleCallbackQuery($update['callback_query']);
+
+                return response()->json(['ok' => true]);
+            }
 
             // Проверяем наличие сообщения в обновлении
             if (!isset($update['message'])) {
@@ -50,8 +53,9 @@ class MainController extends Controller
                 return response()->json(['ok' => true]);
             }
 
-            // Отправляем то же сообщение обратно пользователю (эхо)
-            $this->telegramService->sendMessageToChat($chatId, $text);
+            if ($text === '/start') {
+                (new TelegramMessageHandlerService())->handleStartMessage($chatId);
+            }
 
             return response()->json(['ok' => true]);
 

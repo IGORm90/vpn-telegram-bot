@@ -1,21 +1,22 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Telegram;
 
+use App\Services\HttpService;
 use Illuminate\Support\Facades\Log;
 
 /**
  * Telegram Service для взаимодействия с Telegram Bot API
  */
-class TelegramService
+class TelegramApiService
 {
     private HttpService $httpService;
     private string $botToken;
     private string $baseUrl;
 
     /**
-     * @param string $botToken Токен Telegram бота
-     * @param string|int $chatId ID чата бота
+     * @param string $botToken
+     * @param string|int $chatId
      */
     public function __construct()
     {
@@ -28,23 +29,11 @@ class TelegramService
     }
 
     /**
-     * Отправка сообщения в чат бота (по умолчанию)
-     *
-     * @param string $text Текст сообщения
-     * @param array $options Дополнительные параметры (parse_mode, reply_markup и т.д.)
-     * @return array|null
-     */
-    public function sendMessage($chatId, string $text, array $options = []): ?array
-    {
-        return $this->sendMessageToChat($chatId, $text, $options);
-    }
-
-    /**
      * Отправка сообщения в указанный чат
      *
-     * @param string|int $chatId ID чата
-     * @param string $text Текст сообщения
-     * @param array $options Дополнительные параметры (parse_mode, reply_markup и т.д.)
+     * @param string|int $chatId
+     * @param string $text
+     * @param array $options
      * @return array|null
      */
     public function sendMessageToChat($chatId, string $text, array $options = []): ?array
