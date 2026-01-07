@@ -10,10 +10,10 @@ class UserService
     private UserRepository $userRepository;
     private VpnApiService $vpnApiService;
 
-    public function __construct(UserRepository $userRepository, VpnApiService $vpnApiService)
+    public function __construct()
     {
-        $this->userRepository = $userRepository;
-        $this->vpnApiService = $vpnApiService;
+        $this->userRepository = new UserRepository();
+        $this->vpnApiService = new VpnApiService();
     }
 
     /**

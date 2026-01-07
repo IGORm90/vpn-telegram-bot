@@ -19,7 +19,7 @@ services:
       - DB_HOST=db
       - DB_PORT=3306
       - DB_DATABASE=${DB_DATABASE:-vpn_bot}
-      - DB_USERNAME=${DB_USERNAME:-root}
+      - DB_USERNAME=${DB_USERNAME:-vpn_user}
       - DB_PASSWORD=${DB_PASSWORD:-secret}
 
   webserver:
@@ -46,7 +46,7 @@ services:
       MYSQL_USER: ${DB_USERNAME:-vpn_user}
       MYSQL_PASSWORD: ${DB_PASSWORD:-secret}
     ports:
-      - "3306:3306"
+      - "3307:3306"
     volumes:
       - db_data:/var/lib/mysql
     networks:

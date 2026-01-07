@@ -23,6 +23,7 @@ return new class extends Migration
             $table->boolean('is_active')->default(true);
             $table->dateTime('expires_at')->nullable();
             $table->bigInteger('balance')->default(0);
+            $table->json('settings')->nullable();
             
             $table->timestamps();
         });
