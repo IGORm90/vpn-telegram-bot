@@ -3,18 +3,20 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Services\AdminService;
+use App\Services\CacheService;
 use Illuminate\Support\Facades\Log;
 use App\Services\Telegram\TelegramApiService;
 use App\Services\Telegram\TelegramMessageHandlerService;
-use App\Services\Telegram\TelegramKeyboardService;
 
 class MainController extends Controller
 {
     private TelegramApiService $telegramApiService;
-
+    private CacheService $cache;
     public function __construct()
     {
         $this->telegramApiService = new TelegramApiService();
+        $this->cache = new CacheService();
     }
 
     /**
@@ -43,6 +45,7 @@ class MainController extends Controller
             }
 
             $message = $update['message'];
+            $username = $message['from']['username'] ?? null;
             
             // Извлекаем данные сообщения
             $chatId = $message['chat']['id'] ?? null;
@@ -53,9 +56,7 @@ class MainController extends Controller
                 return response()->json(['ok' => true]);
             }
 
-            if ($text === '/start') {
-                (new TelegramMessageHandlerService())->handleStartMessage($chatId);
-            }
+            $this->handleMessage($chatId, $text, $username);
 
             return response()->json(['ok' => true]);
 
@@ -66,6 +67,22 @@ class MainController extends Controller
             ]);
 
             return response()->json(['ok' => false, 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    private function handleMessage(int $chatId, string $text, string $username): void
+    {
+        if ($text === '/start') {
+            (new TelegramMessageHandlerService())->handleStartMessage($chatId);
+        }
+
+        $cachekey = $chatId . ':support';
+        if ($this->cache->has($cachekey)) {
+            $text = 'Сообщение от пользователя ' . $username . ': ' . $text;
+            (new AdminService())->sendMesssageToAdmin($text);
+
+            $this->cache->forget($cachekey);
+            $this->telegramApiService->sendMessageToChat($chatId, 'Сообщение отправлено в поддержку');
         }
     }
 }

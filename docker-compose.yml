@@ -15,12 +15,16 @@ services:
       - vpn-bot-network
     depends_on:
       - db
+      - redis
     environment:
       - DB_HOST=db
       - DB_PORT=3306
       - DB_DATABASE=${DB_DATABASE:-vpn_bot}
       - DB_USERNAME=${DB_USERNAME:-vpn_user}
       - DB_PASSWORD=${DB_PASSWORD:-secret}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
 
   webserver:
     image: nginx:alpine
@@ -53,11 +57,25 @@ services:
       - vpn-bot-network
     command: --default-authentication-plugin=mysql_native_password
 
+  redis:
+    image: redis:7-alpine
+    container_name: vpn-bot-redis
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - vpn-bot-network
+    command: redis-server --appendonly yes
+
 networks:
   vpn-bot-network:
     driver: bridge
 
 volumes:
   db_data:
+    driver: local
+  redis_data:
     driver: local
 

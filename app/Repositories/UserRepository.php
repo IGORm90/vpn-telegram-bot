@@ -40,6 +40,17 @@ class UserRepository
     }
 
     /**
+     * Получить пользователя по telegram_id или создать нового
+     */
+    public function getOrCreate(array $data): User
+    {
+        return User::firstOrCreate(
+            ['telegram_id' => $data['telegram_id']],
+            $data
+        );
+    }
+
+    /**
      * Обновить данные пользователя
      */
     public function update(User $user, array $data): bool

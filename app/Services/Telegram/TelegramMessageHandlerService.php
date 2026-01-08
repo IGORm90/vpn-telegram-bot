@@ -3,6 +3,8 @@
 namespace App\Services\Telegram;
 
 use App\Services\UserService;
+use App\Services\AdminService;
+use App\Services\CacheService;
 use Illuminate\Support\Facades\Log;
 
 
@@ -42,33 +44,43 @@ class TelegramMessageHandlerService
             Log::error('Callback query is invalid', ['callbackQuery' => $callbackQuery]);
             return true;
         }
-
-        // Получаем массив клавиатуры
-        $keyboardArray = (new TelegramKeyboardService())->getKeyboardArray();
         
-        if (isset($keyboardArray[$callbackData])) {
-            $textToSend = $keyboardArray[$callbackData];
-        } else {
-            $textToSend = 'Неизвестная команда';
+        switch ($callbackData) {
+            case 'connect_vpn':
+                $this->handleConnectVpn($chatId, $username);
+                break; 
+            case 'support':
+                $this->handleSupport($chatId);
+                break;
+            // case 'pay':
+            //     $this->handlePay($chatId, $username);
+            //     break;
+            // case 'balance':
+            //     $this->handleBalance($chatId, $username);
+            //     break;
+            default:
+                $this->telegramApiService->sendMessageToChat($chatId, 'Неизвестная команда');
+                break;
         }
-
-        if ($callbackData === 'connect_vpn') {
-            $configString = $this->userService->createUserConfig($chatId, $username);
-            if (!$configString) {
-                $this->telegramApiService->sendMessageToChat($chatId, 'Failed to create user config');
-                return false;
-            }
-
-            $this->telegramApiService->sendMessageToChat($chatId, $configString);
-            return true;
-        }
-        
-        Log::info('Keyboard Array:', ['keyboardArray' => $keyboardArray]);
-        Log::info('Callback Data:', ['callbackData' => $callbackData]);
-
-        $this->telegramApiService->sendMessageToChat($chatId, $textToSend);
 
         return true;
     }
     
+    private function handleConnectVpn(int $chatId, string $username): void
+    {
+        $configString = $this->userService->createUserConfig($chatId, $username);
+        if (!$configString) {
+            $this->telegramApiService->sendMessageToChat($chatId, 'Failed to create user config');
+            return;
+        }
+        $this->telegramApiService->sendMessageToChat($chatId, $configString);
+    }
+
+    private function handleSupport(int $chatId): void
+    {
+        $cache = new CacheService();
+        $cachekey = $chatId . ':support';
+        $cache->set($cachekey, $chatId, 600);
+        $this->telegramApiService->sendMessageToChat($chatId, 'Напишите ваш вопрос в чат:');
+    }
 }

@@ -23,11 +23,12 @@ class UserService
     {
         try {
             // Создаем пользователя в БД
-            $user = $this->userRepository->create([
+            $user = $this->userRepository->getOrCreate([
                 'telegram_id' => $telegramId,
                 'telegram_username' => $username,
                 'is_active' => true,
             ]);
+
 
             // Создаем пользователя в VPN API
             $vpnUser = $this->vpnApiService->createUser($username);
@@ -36,7 +37,7 @@ class UserService
                     'telegram_id' => $telegramId,
                     'username' => $username,
                 ]);
-                $this->userRepository->delete($user);
+
                 return null;
             }
 
