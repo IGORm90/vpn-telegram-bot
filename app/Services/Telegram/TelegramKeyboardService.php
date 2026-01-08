@@ -7,26 +7,29 @@ class TelegramKeyboardService
 {
 
     const KEYBOARD = [
-       'connect_vpn' => 'Подключить vpn',
-       'support' => 'Написать в поддержку',
-       'pay' => 'Оплата доступа',
-       'balance' => 'Баланс',
+       ['text' => 'Подключить vpn'],
+       ['text' =>  'Написать в поддержку'],
+    //    'Оплата доступа',
+    //    'Баланс',
     ];
 
     public function getKeyboard()
     {
-        $keyboardValues = [];
-        foreach (self::KEYBOARD as $key => $value) {
-            $keyboardValues[] = [
-                ['text' => $value, 'callback_data' => $key]
-            ];
-        }
-        return [
-            'inline_keyboard' => $keyboardValues,
-        ];
-    }
+        $buttons = [];
+        $chunks = array_chunk(self::KEYBOARD, 2);
 
-    public function getKeyboardArray(){
-       return self::KEYBOARD;
+        foreach ($chunks as $chunk) {
+            $row = [];
+            foreach ($chunk as $button) {
+                $row[] = ['text' => $button['text']];
+            }
+            $buttons[] = $row;
+        }
+
+        return [
+            'keyboard' => $buttons,
+            'resize_keyboard' => true,
+            'one_time_keyboard' => false,
+        ];
     }
 }

@@ -20,6 +20,7 @@ class User extends Model
         'vpn_id',
         'is_active',
         'expires_at',
+        'settings',
     ];
 
     /**
@@ -32,5 +33,6 @@ class User extends Model
         'vpn_id' => 'integer',
         'is_active' => 'boolean',
         'expires_at' => 'datetime',
+        'settings' => 'array',
     ];
 }

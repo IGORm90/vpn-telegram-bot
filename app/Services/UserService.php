@@ -2,8 +2,9 @@
 
 namespace App\Services;
 
-use App\Repositories\UserRepository;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
+use App\Repositories\UserRepository;
 
 class UserService
 {
@@ -30,21 +31,28 @@ class UserService
             ]);
 
 
-            // Создаем пользователя в VPN API
-            $vpnUser = $this->vpnApiService->createUser($username);
-            if (!$vpnUser) {
-                Log::error('Failed to create VPN user', [
-                    'telegram_id' => $telegramId,
-                    'username' => $username,
-                ]);
+            if ($user->vpn_id === null) {
+                $vpnUser = $this->vpnApiService->createUser($username);
+                if (!$vpnUser) {
+                    Log::error('Failed to create VPN user', [
+                        'telegram_id' => $telegramId,
+                        'username' => $username,
+                    ]);
 
-                return null;
+                    return null;
+                }
+
+                // Обновляем VPN ID в БД
+                $this->userRepository->update($user, [
+                    'vpn_id' => $vpnUser['id'],
+                ]);
+            }
+            
+            // тут нужно проверить наличие uri в поле settings
+            if (!empty($user->settings) && is_array($user->settings) && !empty($user->settings['uri'])) {
+                return $user->settings['uri'] ?? null;
             }
 
-            // Обновляем VPN ID в БД
-            $this->userRepository->update($user, [
-                'vpn_id' => $vpnUser['id'],
-            ]);
 
             // Получаем конфигурацию пользователя
             $config = $this->vpnApiService->getUserConfig($vpnUser['id']);
@@ -55,6 +63,12 @@ class UserService
                 ]);
                 return null;
             }
+
+            // Сохраняем конфигурацию в БД
+            $this->userRepository->update($user, [
+                'expires_at' => Carbon::parse($config['expires_at']),
+                'settings' => $config,
+            ]);
 
             return $config['uri'];
         } catch (\Exception $e) {

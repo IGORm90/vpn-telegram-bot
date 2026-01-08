@@ -125,6 +125,26 @@ class HttpService
     }
 
     /**
+     * POST запрос с multipart/form-data (для отправки файлов)
+     *
+     * @param string $url
+     * @param array $multipart Массив multipart данных
+     * @param array $headers Дополнительные заголовки
+     * @return array|null
+     */
+    public function postMultipart(string $url, array $multipart = [], array $headers = []): ?array
+    {
+        // Удаляем Content-Type из заголовков, Guzzle установит его автоматически для multipart
+        $customHeaders = array_merge($this->defaultHeaders, $headers);
+        unset($customHeaders['Content-Type']);
+
+        return $this->request('POST', $url, [
+            'multipart' => $multipart,
+            'headers' => $customHeaders,
+        ]);
+    }
+
+    /**
      * Универсальный метод для выполнения HTTP запросов
      *
      * @param string $method HTTP метод

@@ -61,6 +61,83 @@ class TelegramApiService
     }
 
     /**
+     * Отправка фото с текстом в указанный чат
+     *
+     * @param string|int $chatId
+     * @param string $filePath Путь к файлу на диске
+     * @param string $caption Текст под картинкой (опционально)
+     * @param array $options Дополнительные опции (parse_mode, reply_markup и т.д.)
+     * @return array|null
+     */
+    public function sendMessageToChatWithPhoto($chatId, string $filePath, string $caption = '', array $options = []): ?array
+    {
+        if (!file_exists($filePath)) {
+            Log::error('Photo file not found', ['file_path' => $filePath]);
+            return [
+                'success' => false,
+                'message' => 'File not found',
+                'data' => null,
+            ];
+        }
+
+        // Формируем multipart данные
+        $multipart = [
+            [
+                'name' => 'chat_id',
+                'contents' => (string)$chatId,
+            ],
+            [
+                'name' => 'photo',
+                'contents' => file_get_contents($filePath),
+                'filename' => basename($filePath),
+            ],
+        ];
+
+        // Добавляем caption если указан
+        if (!empty($caption)) {
+            $multipart[] = [
+                'name' => 'caption',
+                'contents' => $caption,
+            ];
+        }
+
+        // Добавляем дополнительные опции (parse_mode, reply_markup и т.д.)
+        foreach ($options as $key => $value) {
+            $multipart[] = [
+                'name' => $key,
+                'contents' => is_array($value) ? json_encode($value) : (string)$value,
+            ];
+        }
+
+        try {
+            $response = $this->httpService->postMultipart($this->baseUrl . 'sendPhoto', $multipart);
+
+            if (!($response && $response['success'])) {
+                Log::error('Failed to send Telegram photo', [
+                    'chat_id' => $chatId,
+                    'file_path' => $filePath,
+                    'error' => $response['message'] ?? 'Unknown error',
+                ]);
+            }
+
+            return $response;
+        } catch (\Exception $e) {
+            Log::error('Exception while sending Telegram photo', [
+                'chat_id' => $chatId,
+                'file_path' => $filePath,
+                'exception' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return [
+                'success' => false,
+                'message' => $e->getMessage(),
+                'data' => null,
+            ];
+        }
+    }
+
+    /**
      * Получить информацию о боте
      *
      * @return array|null
