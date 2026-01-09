@@ -13,8 +13,9 @@
 |
 */
 
-$router->get('/', function () use ($router) {
-    return $router->app->version();
+// Health check endpoint
+$router->get('/health', function () {
+    return response()->json(['status' => 'ok']);
 });
 
 // Telegram webhook
