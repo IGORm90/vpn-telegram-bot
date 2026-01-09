@@ -35,13 +35,6 @@ class MainController extends Controller
         try {
             $update = $request->all();
         
-            // Проверяем наличие callback_query в обновлении
-            // if (isset($update['callback_query'])) {
-            //     (new TelegramMessageHandlerService())->handleCallbackQuery($update['callback_query']);
-
-            //     return response()->json(['ok' => true]);
-            // }
-
             // Проверяем наличие сообщения в обновлении
             if (!isset($update['message'])) {
                 return response()->json(['ok' => true]);

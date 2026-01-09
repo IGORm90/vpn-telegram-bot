@@ -32,8 +32,10 @@ class TelegramMessageHandlerService
             $this->telegramApiService->sendMessageToChatWithPhoto($chatId, $imagePath, $message, $options);
 
             $this->telegramApiService->sendMessageToChat($chatId, $this->textService->get('welcome.instruction'));
+            $this->telegramApiService->sendMessageToChat($chatId, $this->textService->get('info.available_servers'));
         } else {
             $this->telegramApiService->sendMessageToChat($chatId, $this->textService->get('support.start'), $options);
+            $this->telegramApiService->sendMessageToChat($chatId, $this->textService->get('info.available_servers'));
         }
     }
 }
