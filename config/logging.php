@@ -3,7 +3,6 @@
 use Monolog\Handler\StreamHandler;
 use Monolog\Handler\FilterHandler;
 use Monolog\Formatter\LineFormatter;
-use Monolog\Level;
 
 return [
     /*
@@ -40,9 +39,9 @@ return [
             'handler' => FilterHandler::class,
             'level' => env('LOG_LEVEL', 'debug'),
             'with' => [
-                'handler' => new StreamHandler('php://stdout', Level::Debug),
-                'minLevelOrList' => Level::Debug,
-                'maxLevel' => Level::Warning,
+                'handler' => new StreamHandler('php://stdout', 'debug'),
+                'minLevelOrList' => 'debug',
+                'maxLevel' => 'warning',
             ],
             'formatter' => LineFormatter::class,
             'formatter_with' => [
@@ -56,10 +55,10 @@ return [
         'stderr' => [
             'driver' => 'monolog',
             'handler' => StreamHandler::class,
-            'level' => Level::Error,
+            'level' => 'error',
             'with' => [
                 'stream' => 'php://stderr',
-                'level' => Level::Error,
+                'level' => 'error',
             ],
             'formatter' => LineFormatter::class,
             'formatter_with' => [
