@@ -31,9 +31,16 @@ COPY . /var/www
 # Установка зависимостей
 RUN composer install --no-interaction --optimize-autoloader --no-dev
 
+# Создание необходимых директорий
+RUN mkdir -p /var/www/storage/logs \
+    && mkdir -p /var/www/storage/framework/cache \
+    && mkdir -p /var/www/storage/framework/views \
+    && mkdir -p /var/www/bootstrap/cache
+
 # Настройка прав доступа
 RUN chown -R www-data:www-data /var/www \
-    && chmod -R 755 /var/www/storage
+    && chmod -R 775 /var/www/storage \
+    && chmod -R 775 /var/www/bootstrap/cache
 
 # Открытие порта
 EXPOSE 9000
