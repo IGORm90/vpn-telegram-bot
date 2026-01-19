@@ -20,12 +20,14 @@ class TelegramMessageHandlerService
 
     public function handleStartMessage(int $chatId): void
     {
-        $username = $this->userRepository->findByTelegramId($chatId);
+        $user = $this->userRepository->findByTelegramId($chatId);
 
+        $keyboardService = new TelegramKeyboardService($user);
         $options = [
-            'reply_markup' => (new TelegramKeyboardService())->getKeyboard(),
+            'reply_markup' => $keyboardService->getKeyboard(),
         ];
-        if (!$username) {
+        
+        if (!$user) {
             $imagePath = __DIR__ . '/../../../resources/images/image.png';
             
             $message = $this->textService->get('welcome.message');

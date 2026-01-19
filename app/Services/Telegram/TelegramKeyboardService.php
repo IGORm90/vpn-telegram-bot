@@ -2,32 +2,49 @@
 
 namespace App\Services\Telegram;
 
+use App\Models\User;
+
 
 class TelegramKeyboardService
 {
 
     const KEYBOARD = [
-       ['text' => 'Подключить vpn'],
-       ['text' =>  'Написать в поддержку'],
-    //    'Оплата доступа',
-    //    'Баланс',
+        [
+            ['text' => 'Подключить vpn'],
+            ['text' => 'Написать в поддержку']
+        ],
+        [
+            ['text' => 'Баланс'],
+            ['text' => 'Оплата доступа']
+        ]
     ];
+
+    const ADMIN_KEYBOARD = [
+        [
+            ['text' => 'Написать пользователю'],
+            ['text' => 'Написать всем']
+        ]
+    ];
+
+    private $isAdmin = false;
+
+    public function __construct(?User $user = null)
+    {
+        if ($user) {
+            $adminChatId = intval(env('ADMIN_CHAT_ID'));
+            $this->isAdmin = $user->telegram_id === $adminChatId;
+        }
+    }
 
     public function getKeyboard()
     {
-        $buttons = [];
-        $chunks = array_chunk(self::KEYBOARD, 2);
-
-        foreach ($chunks as $chunk) {
-            $row = [];
-            foreach ($chunk as $button) {
-                $row[] = ['text' => $button['text']];
-            }
-            $buttons[] = $row;
+        if ($this->isAdmin) {
+            $keyboard = array_merge(self::KEYBOARD, self::ADMIN_KEYBOARD);
+        } else {
+            $keyboard = self::KEYBOARD;
         }
-
         return [
-            'keyboard' => $buttons,
+            'keyboard' => $keyboard,
             'resize_keyboard' => true,
             'one_time_keyboard' => false,
         ];

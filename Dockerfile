@@ -22,6 +22,9 @@ RUN pecl install redis \
 # Установка Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
+# Копирование конфигурации PHP-FPM
+COPY docker/php-fpm/www.conf /usr/local/etc/php-fpm.d/www.conf
+
 # Установка рабочей директории
 WORKDIR /var/www
 

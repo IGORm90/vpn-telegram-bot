@@ -2,8 +2,9 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class User extends Model
 {
@@ -35,4 +36,12 @@ class User extends Model
         'expires_at' => 'datetime',
         'settings' => 'array',
     ];
+
+    /**
+     * Получить транзакции пользователя
+     */
+    public function starInvoices(): HasMany
+    {
+        return $this->hasMany(StarInvoice::class);
+    }
 }

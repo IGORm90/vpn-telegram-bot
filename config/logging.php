@@ -36,12 +36,11 @@ return [
 
         'stdout' => [
             'driver' => 'monolog',
-            'handler' => FilterHandler::class,
+            'handler' => StreamHandler::class,
             'level' => env('LOG_LEVEL', 'debug'),
             'with' => [
-                'handler' => new StreamHandler('php://stdout', 'debug'),
-                'minLevelOrList' => 'debug',
-                'maxLevel' => 'warning',
+                'stream' => 'php://stdout',
+                'level' => env('LOG_LEVEL', 'debug'),
             ],
             'formatter' => LineFormatter::class,
             'formatter_with' => [
