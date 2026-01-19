@@ -28,6 +28,7 @@ class UserService
                 'telegram_id' => $telegramId,
                 'telegram_username' => $username,
                 'is_active' => true,
+                'expires_at' => Carbon::now()->addDays(14),
             ]);
 
 
@@ -66,7 +67,6 @@ class UserService
 
             // Сохраняем конфигурацию в БД
             $this->userRepository->update($user, [
-                'expires_at' => Carbon::parse($config['expires_at']),
                 'settings' => $config,
             ]);
 

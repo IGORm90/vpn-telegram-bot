@@ -14,7 +14,7 @@ class TelegramKeyboardService
             ['text' => 'Написать в поддержку']
         ],
         [
-            ['text' => 'Баланс'],
+            ['text' => 'Подписка'],
             ['text' => 'Оплата доступа']
         ]
     ];
@@ -23,6 +23,15 @@ class TelegramKeyboardService
         [
             ['text' => 'Написать пользователю'],
             ['text' => 'Написать всем']
+        ],
+        [
+            ['text' => 'Главная']
+        ]
+    ];
+
+    const ADMIN_BUTTON = [
+        [
+            ['text' => 'Админ панель']
         ]
     ];
 
@@ -32,19 +41,28 @@ class TelegramKeyboardService
     {
         if ($user) {
             $adminChatId = intval(env('ADMIN_CHAT_ID'));
-            $this->isAdmin = $user->telegram_id === $adminChatId;
+            $this->isAdmin = intval($user->telegram_id) === $adminChatId;
         }
     }
 
     public function getKeyboard()
     {
         if ($this->isAdmin) {
-            $keyboard = array_merge(self::KEYBOARD, self::ADMIN_KEYBOARD);
+            $keyboard = array_merge(self::KEYBOARD, self::ADMIN_BUTTON);
         } else {
             $keyboard = self::KEYBOARD;
         }
         return [
             'keyboard' => $keyboard,
+            'resize_keyboard' => true,
+            'one_time_keyboard' => false,
+        ];
+    }
+
+    public function getAdminKeyboard()
+    {
+        return [
+            'keyboard' => self::ADMIN_KEYBOARD,
             'resize_keyboard' => true,
             'one_time_keyboard' => false,
         ];

@@ -3,8 +3,7 @@
 namespace App\Handlers;
 
 use Illuminate\Http\Request;
-use App\Services\TextService;
-use App\Services\UserService;
+use App\Services\LocaleService;
 use App\Services\AdminService;
 use App\Services\CacheService;
 use Illuminate\Support\Facades\Log;
@@ -18,13 +17,16 @@ class MessageHandler
 
     private TelegramApiService $telegramApiService;
     private CacheService $cache;
-    private TextService $textService;
-
+    private LocaleService $localeService;
+    private TelegramMessageHandlerService $telegramMessageHandlerService;
+    private bool $isAdmin = false;
+    
     public function __construct()
     {
         $this->telegramApiService = new TelegramApiService();
+        $this->telegramMessageHandlerService = new TelegramMessageHandlerService();
         $this->cache = new CacheService();
-        $this->textService = new TextService();
+        $this->localeService = new LocaleService();
     }
     
     public function handle(Request $request)
@@ -43,7 +45,7 @@ class MessageHandler
         $username = $message['from']['username'] ?? null;
 
         // Если нет текста или chat_id, игнорируем
-        if (!$chatId || !$text) {
+        if (!$chatId) {
             Log::warning('Missing chatId or text in message', [
                 'chatId' => $chatId,
                 'text' => $text,
@@ -52,36 +54,70 @@ class MessageHandler
             throw new ValidationException('Invalid message data');
         }
 
-        Log::info('Processing message', [
-            'chatId' => $chatId,
-            'text' => $text,
-            'username' => $username
-        ]);
+        if (!$text) {
+            return;
+        }
 
         if ($text === '/start') {
-            Log::info('Handling /start command', ['chatId' => $chatId]);
-            try {
-                (new TelegramMessageHandlerService())->handleStartMessage($chatId);
-                Log::info('/start command handled successfully', ['chatId' => $chatId]);
-            } catch (\Exception $e) {
-                Log::error('Error handling /start command', [
-                    'chatId' => $chatId,
-                    'error' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString()
-                ]);
-                throw $e;
-            }
+            $this->telegramMessageHandlerService->handleStartMessage($chatId);
+            return;
+        }
+        if ($text === 'Главная') {
+            $this->telegramMessageHandlerService->handleMainPanel($chatId);
+            return;
+        }
+        if ($text === 'Подключить vpn') {
+            $this->telegramMessageHandlerService->handleConnectVpn($chatId, $username);
+            return;
+        }
+        if ($text === 'Написать в поддержку') {
+            $this->telegramMessageHandlerService->handleSupport($chatId);
+            return;
+        }
+        if ($text === 'Подписка') {
+            $this->telegramMessageHandlerService->handleBalance($chatId);
+            return;
+        }
+        if ($text === 'Оплата доступа') {
+            $this->telegramMessageHandlerService->handleBalance($chatId);
+            return;
+        }
+        if ($text === 'Админ панель') {
+            $this->telegramMessageHandlerService->handleAdminPanel($chatId);
+            return;
+        }
+        if ($text === 'Написать пользователю') {
+            $this->telegramMessageHandlerService->handleMessageToUserStart($chatId);
+            return;
+        }
+        if ($text === 'Написать всем') {
+            $this->telegramMessageHandlerService->handleMessageToAllStart($chatId);
             return;
         }
 
-        if ($text === 'Подключить vpn') {
-            $this->handleConnectVpn($chatId, $username);
-            return;
-        }
-        
-        if ($text === 'Написать в поддержку') {
-            $this->handleSupport($chatId);
-            return;
+        $this->isAdmin = intval(env('ADMIN_CHAT_ID')) === intval($chatId);
+
+        if ($this->isAdmin) {
+            $cachekey = $chatId . ':message_to_all';
+            if ($this->cache->has($cachekey)) {
+                $this->telegramMessageHandlerService->handleMessageToAllSend($text);
+                $this->cache->forget($cachekey);
+                return;
+            }
+
+            $cachekey = $chatId . ':message_to_user';
+            if ($this->cache->has($cachekey)) {
+                $username = $this->cache->get($cachekey);
+
+                if ($username === 'start') {
+                    $this->telegramMessageHandlerService->handleMessageToUserSaveUsername($chatId, $text);
+                    return;
+                }
+
+                $this->telegramMessageHandlerService->handleMessageToUserSendMessage($chatId, $text);
+                $this->cache->forget($cachekey);
+                return;
+            }
         }
 
         $cachekey = $chatId . ':support';
@@ -90,30 +126,9 @@ class MessageHandler
             (new AdminService())->sendMesssageToAdmin($text);
 
             $this->cache->forget($cachekey);
-            $confirmationMessage = $this->textService->get('support.confirmation');
+            $confirmationMessage = $this->localeService->get('support.confirmation');
             $this->telegramApiService->sendMessageToChat($chatId, $confirmationMessage);
-        }
-    }
-
-    private function handleConnectVpn(int $chatId, string $username): void
-    {
-        $userService = new UserService();
-        $configString = $userService->createUserConfig($chatId, $username);
-        if (!$configString) {
-            $errorMessage = $this->textService->get('errors.config_creation_failed');
-            $this->telegramApiService->sendMessageToChat($chatId, $errorMessage);
             return;
         }
-        $this->telegramApiService->sendMessageToChat($chatId, $configString);
-    }
-
-    private function handleSupport(int $chatId): void
-    {
-        $cache = new CacheService();
-        $cachekey = $chatId . ':support';
-        $cache->set($cachekey, $chatId, 600);
-        
-        $promptMessage = $this->textService->get('support.prompt');
-        $this->telegramApiService->sendMessageToChat($chatId, $promptMessage);
     }
 }

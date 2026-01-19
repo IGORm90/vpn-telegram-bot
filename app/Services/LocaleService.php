@@ -7,14 +7,14 @@ use Illuminate\Support\Facades\Log;
 /**
  * Сервис для работы с текстовыми сообщениями из JSON файла
  */
-class TextService
+class LocaleService
 {
     private array $texts = [];
     private string $filePath;
 
     public function __construct()
     {
-        $this->filePath = __DIR__ . '/../../resources/texts.json';
+        $this->filePath = __DIR__ . '/../../resources/locale.json';
         $this->loadTexts();
     }
 

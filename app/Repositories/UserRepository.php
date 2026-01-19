@@ -116,5 +116,18 @@ class UserRepository
     {
         return $user->update(['expires_at' => $expiresAt]);
     }
+
+    public function getByTelegramUsername(string $username): ?User
+    {
+        return User::where('telegram_username', $username)->first();
+    }
+
+    /**
+     * Получить всех пользователей
+     */
+    public function getAll(): Collection
+    {
+        return User::all();
+    }
 }
 

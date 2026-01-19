@@ -8,6 +8,9 @@ services:
     container_name: vpn-bot-app
     restart: unless-stopped
     working_dir: /var/www
+    volumes:
+      - .:/var/www
+      - /var/www/vendor
     networks:
       - vpn-bot-network
     depends_on:
