@@ -8,13 +8,12 @@ use App\Services\AdminService;
 use App\Services\CacheService;
 use Illuminate\Support\Facades\Log;
 use App\Services\Telegram\TelegramApiService;
+use App\Services\Telegram\TelegramKeyboardService;
 use Illuminate\Validation\ValidationException;
 use App\Services\Telegram\TelegramMessageHandlerService;
 
 class MessageHandler
 {
-
-
     private TelegramApiService $telegramApiService;
     private CacheService $cache;
     private LocaleService $localeService;
@@ -29,22 +28,20 @@ class MessageHandler
         $this->localeService = new LocaleService();
     }
     
-    public function handle(Request $request)
+    public function handle(Request $request): void
     {
         $update = $request->all();
-        Log::info('Update', $update);
+
         $message = $update['message'] ?? null;
-        // Проверяем наличие сообщения в обновлении
+        
         if (!$message) {
             throw new ValidationException('Invalid message data');
         }
         
-        // Извлекаем данные сообщения
         $chatId = $message['chat']['id'] ?? null;
         $text = $message['text'] ?? null;
         $username = $message['from']['username'] ?? null;
 
-        // Если нет текста или chat_id, игнорируем
         if (!$chatId) {
             Log::warning('Missing chatId or text in message', [
                 'chatId' => $chatId,
@@ -58,45 +55,22 @@ class MessageHandler
             return;
         }
 
-        if ($text === '/start') {
-            $this->telegramMessageHandlerService->handleStartMessage($chatId);
-            return;
-        }
-        if ($text === 'Главная') {
-            $this->telegramMessageHandlerService->handleMainPanel($chatId);
-            return;
-        }
-        if ($text === 'Подключить vpn') {
-            $this->telegramMessageHandlerService->handleConnectVpn($chatId, $username);
-            return;
-        }
-        if ($text === 'Написать в поддержку') {
-            $this->telegramMessageHandlerService->handleSupport($chatId);
-            return;
-        }
-        if ($text === 'Подписка') {
-            $this->telegramMessageHandlerService->handleBalance($chatId);
-            return;
-        }
-        if ($text === 'Оплата доступа') {
-            $this->telegramMessageHandlerService->handleBalance($chatId);
-            return;
-        }
-        if ($text === 'Админ панель') {
-            $this->telegramMessageHandlerService->handleAdminPanel($chatId);
-            return;
-        }
-        if ($text === 'Написать пользователю') {
-            $this->telegramMessageHandlerService->handleMessageToUserStart($chatId);
-            return;
-        }
-        if ($text === 'Написать всем') {
-            $this->telegramMessageHandlerService->handleMessageToAllStart($chatId);
+        $buttonHandler = TelegramKeyboardService::BUTTON_HANDLERS[$text] ?? null;
+        if ($buttonHandler) {
+            [$handler, $needsUsername] = $buttonHandler;
+            $needsUsername
+                ? $this->telegramMessageHandlerService->$handler($chatId, $username)
+                : $this->telegramMessageHandlerService->$handler($chatId);
             return;
         }
 
         $this->isAdmin = intval(env('ADMIN_CHAT_ID')) === intval($chatId);
 
+        $this->handleCachedActions($chatId, $text, $username);
+    }
+
+    private function handleCachedActions(int $chatId, string $text, ?string $username): void
+    {
         if ($this->isAdmin) {
             $cachekey = $chatId . ':message_to_all';
             if ($this->cache->has($cachekey)) {
@@ -107,9 +81,9 @@ class MessageHandler
 
             $cachekey = $chatId . ':message_to_user';
             if ($this->cache->has($cachekey)) {
-                $username = $this->cache->get($cachekey);
+                $targetUsername = $this->cache->get($cachekey);
 
-                if ($username === 'start') {
+                if ($targetUsername === 'start') {
                     $this->telegramMessageHandlerService->handleMessageToUserSaveUsername($chatId, $text);
                     return;
                 }
@@ -122,13 +96,12 @@ class MessageHandler
 
         $cachekey = $chatId . ':support';
         if ($this->cache->has($cachekey)) {
-            $text = 'Сообщение от пользователя ' . $username . ': ' . $text;
-            (new AdminService())->sendMesssageToAdmin($text);
+            $message = 'Сообщение от пользователя ' . $username . ': ' . $text;
+            (new AdminService())->sendMesssageToAdmin($message);
 
             $this->cache->forget($cachekey);
             $confirmationMessage = $this->localeService->get('support.confirmation');
             $this->telegramApiService->sendMessageToChat($chatId, $confirmationMessage);
-            return;
         }
     }
 }

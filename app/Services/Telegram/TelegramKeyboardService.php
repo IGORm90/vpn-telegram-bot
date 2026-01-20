@@ -7,6 +7,19 @@ use App\Models\User;
 
 class TelegramKeyboardService
 {
+    /**
+     * Маппинг кнопок: текст => [handler, needsUsername]
+     */
+    const BUTTON_HANDLERS = [
+        'Главная' => ['handleMainPanel', false],
+        'Подключить vpn' => ['handleConnectVpn', true],
+        'Написать в поддержку' => ['handleSupport', false],
+        'Подписка' => ['handleBalance', false],
+        'Оплата доступа' => ['handleBalance', false],
+        'Админ панель' => ['handleAdminPanel', false],
+        'Написать пользователю' => ['handleMessageToUserStart', false],
+        'Написать всем' => ['handleMessageToAllStart', false],
+    ];
 
     const KEYBOARD = [
         [
