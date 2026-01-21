@@ -75,4 +75,38 @@ class VpnApiService
 
         return null;
     }
+
+    public function setUserActive(int $userId, bool $isActive): ?bool
+    {
+        $response = null;
+        
+        try {
+            $response = $this->httpService->patch(
+                $this->baseUrl . "/api/users/$userId",
+                [
+                    'is_active' => $isActive,
+                ],
+                [
+                    'Authorization' => 'Bearer ' . env('VPN_API_TOKEN'),
+                ]
+            );
+
+            if ($response && $response['success'] && isset($response['data']['is_active'])) {
+                return $response['data']['is_active'];
+            }
+            
+            Log::warning('VPN API returned unexpected set active response', [
+                'response' => $response,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to set user active status', [
+                'message' => $e->getMessage(),
+                'response' => $response,
+            ]);
+
+            return null;
+        }
+
+        return null;
+    }
 }

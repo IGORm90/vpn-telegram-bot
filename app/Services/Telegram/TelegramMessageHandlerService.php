@@ -90,9 +90,14 @@ class TelegramMessageHandlerService
             $this->telegramApiService->sendErrorMessage($chatId);
             return;
         }
+
+        $keyboardService = new TelegramKeyboardService();
+        $options = [
+            'reply_markup' => $keyboardService->getSubscriptionsKeyboard(),
+        ];
         $this->telegramApiService->sendMessageToChat($chatId, $this->localeService->get('subscription.message', [
             '{expires_at}' => $user->expires_at->format('d.m.Y')
-        ]));
+        ]), $options);
     }
 
     public function handleMessageToUserStart(int $chatId): void

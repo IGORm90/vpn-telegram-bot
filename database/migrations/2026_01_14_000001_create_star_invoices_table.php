@@ -24,6 +24,7 @@ return new class extends Migration
             $table->enum('status', ['created', 'confirmed', 'complited'])->default('created');
             $table->string('payload')->unique(); // Уникальный идентификатор транзакции (user_123_order_abc)
             $table->string('telegram_payment_charge_id')->nullable()->unique(); // ID транзакции от Telegram
+            $table->string('provider_payment_charge_id')->nullable()->unique(); // ID транзакции от Telegram
 
             $table->json('metadata')->nullable(); // Дополнительные данные (детали платежа, ошибки и т.д.)
 

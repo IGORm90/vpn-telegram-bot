@@ -31,7 +31,9 @@ class MessageHandler
     public function handle(Request $request): void
     {
         $update = $request->all();
-
+        Log::info('MessageHandler update', [
+            'update' => $update
+        ]);
         $message = $update['message'] ?? null;
         
         if (!$message) {
