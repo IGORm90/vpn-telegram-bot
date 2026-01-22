@@ -48,17 +48,13 @@ class TelegramKeyboardService
         ]
     ];
 
-    const SUBSCRIPTION_KEYBOARD = [
-        ['text' => '1 месяц - 1 ⭐️', 'callback_data' => 'subscribe_1_month'],
-        ['text' => '3 месяца - 1 ⭐️', 'callback_data' => 'subscribe_3_months'],
-        ['text' => '6 месяцев - 1 ⭐️', 'callback_data' => 'subscribe_6_months'],
-        ['text' => '1 год - 1 ⭐️', 'callback_data' => 'subscribe_1_year']
-    ];
-
     private $isAdmin = false;
+    private SubscriptionService $subscriptionService;
 
     public function __construct(?User $user = null)
     {
+        $this->subscriptionService = new SubscriptionService();
+
         if ($user) {
             $adminChatId = intval(env('ADMIN_CHAT_ID'));
             $this->isAdmin = intval($user->telegram_id) === $adminChatId;
@@ -96,12 +92,14 @@ class TelegramKeyboardService
     public function getSubscriptionsKeyboard(): array
     {
         $inlineKeyboard = [];
+        $subscriptionConfig = $this->subscriptionService->getSubscriptionConfig();
 
-        foreach (self::SUBSCRIPTION_KEYBOARD as $subscription) {
+        foreach ($subscriptionConfig as $callbackData => $config) {
+            $text = $config['title'];
             $row = [
                 [
-                    'text' => $subscription['text'],
-                    'callback_data' => $subscription['callback_data'],
+                    'text' => $text,
+                    'callback_data' => $callbackData,
                 ]
             ];
 

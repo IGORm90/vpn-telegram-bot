@@ -45,10 +45,15 @@ class SubscriptionService
         $this->telegramApiService = new TelegramApiService();
     }
 
+    public function getSubscriptionConfig(): array
+    {
+        return self::SUBSCRIPTION_CONFIG;
+    }
+
     /**
      * Получить конфигурацию подписки по callback_data
      */
-    public function getSubscriptionConfig(string $callbackData): ?array
+    public function getSubscriptionConfigByCallbackData(string $callbackData): ?array
     {
         return self::SUBSCRIPTION_CONFIG[$callbackData] ?? null;
     }
@@ -66,7 +71,7 @@ class SubscriptionService
      */
     public function handleSubscription(int $chatId, string $callbackData, ?string $username = null): bool
     {
-        $config = $this->getSubscriptionConfig($callbackData);
+        $config = $this->getSubscriptionConfigByCallbackData($callbackData);
 
         if (!$config) {
             return false;
