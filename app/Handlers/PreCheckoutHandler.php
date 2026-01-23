@@ -100,17 +100,21 @@ class PreCheckoutHandler
             $user = $invoice->user;
             $currentExpiresAt = $user->expires_at;
 
+            // Получаем количество месяцев из metadata инвойса
+            $months = $invoice->metadata['months'] ?? 1;
+
             // Если подписка не установлена или уже истекла — отсчитываем от текущего момента
             $baseDate = ($currentExpiresAt && $currentExpiresAt->isFuture())
                 ? $currentExpiresAt->copy()
                 : Carbon::now();
 
             $user->update([
-                'expires_at' => $baseDate->addMonth(),
+                'expires_at' => $baseDate->addMonths($months),
             ]);
 
             Log::info('User subscription extended', [
                 'user_id' => $user->id,
+                'months' => $months,
                 'old_expires_at' => $currentExpiresAt?->toDateTimeString(),
                 'new_expires_at' => $user->expires_at->toDateTimeString(),
             ]);
