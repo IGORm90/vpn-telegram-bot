@@ -8,9 +8,10 @@ use App\Models\User;
 class TelegramKeyboardService
 {
     /**
-     * Маппинг кнопок: текст => [handler, needsUsername]
+     * Маппинг кнопок и команд: текст => [handler, needsUsername]
      */
     const BUTTON_HANDLERS = [
+        '/start' => ['handleStartMessage', false],
         'Главная' => ['handleMainPanel', false],
         'Подключить vpn' => ['handleConnectVpn', true],
         'Написать в поддержку' => ['handleSupport', false],
@@ -95,7 +96,7 @@ class TelegramKeyboardService
         $subscriptionConfig = $this->subscriptionService->getSubscriptionConfig();
 
         foreach ($subscriptionConfig as $callbackData => $config) {
-            $text = $config['title'];
+            $text = $config['title'] . ' - ' . $config['amount'] . ' ⭐️';
             $row = [
                 [
                     'text' => $text,

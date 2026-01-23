@@ -27,6 +27,8 @@ class StarInvoice extends Model
         'payment_method',
         'transaction_id',
         'metadata',
+        'raw_pre_checkout_query',
+        'raw_successful_payment',
     ];
 
     /**

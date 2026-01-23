@@ -3,7 +3,9 @@
 namespace App\Handlers;
 
 use App\Models\StarInvoice;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Services\Telegram\TelegramApiService;
 
@@ -45,24 +47,6 @@ class SuccessfulPaymentHandler
             return;
         }
 
-        $this->processSuccessfulPayment(
-            $chatId,
-            $payload,
-            $currency,
-            $totalAmount,
-            $telegramChargeId,
-            $providerChargeId
-        );
-    }
-
-    private function processSuccessfulPayment(
-        ?int $chatId,
-        string $payload,
-        ?string $currency,
-        ?int $totalAmount,
-        string $telegramChargeId,
-        ?string $providerChargeId
-    ): void {
         // Находим запись по payload
         $invoice = StarInvoice::where('payload', $payload)->first();
 
@@ -74,6 +58,11 @@ class SuccessfulPaymentHandler
             return;
         }
 
+        // Сохраняем сырое тело запроса сразу после нахождения invoice
+        $rawSuccessfulPayment = json_encode($successfulPayment, JSON_UNESCAPED_UNICODE);
+        $invoice->update([
+            'raw_successful_payment' => $rawSuccessfulPayment,
+        ]);
 
         if ($payload !== $invoice->payload) {
             Log::error('payload mismatch in successful_payment', [
@@ -113,19 +102,39 @@ class SuccessfulPaymentHandler
             return;
         }
 
-        // Обновляем запись
-        $invoice->update([
-            'status' => 'complited',
-            'telegram_payment_charge_id' => $telegramChargeId,
-            'provider_payment_charge_id' => $providerChargeId,
-        ]);
+        // Обновляем статус invoice и продлеваем подписку пользователя в транзакции
+        DB::transaction(function () use ($invoice, $telegramChargeId, $providerChargeId) {
+            $invoice->update([
+                'status' => 'completed',
+                'telegram_payment_charge_id' => $telegramChargeId,
+                'provider_payment_charge_id' => $providerChargeId,
+            ]);
 
-        Log::info('Payment completed successfully', [
-            'invoice_id' => $invoice->id,
-            'payload' => $payload,
-            'telegram_charge_id' => $telegramChargeId,
-            'provider_charge_id' => $providerChargeId,
-        ]);
+            $user = $invoice->user;
+            $currentExpiresAt = $user->expires_at;
+
+            // Получаем количество месяцев из metadata инвойса
+            $months = $invoice->metadata['months'] ?? 1;
+
+            // Если подписка не установлена или уже истекла — отсчитываем от текущего момента
+            $baseDate = ($currentExpiresAt && $currentExpiresAt->isFuture())
+                ? $currentExpiresAt->copy()
+                : Carbon::now();
+
+            $user->update([
+                'expires_at' => $baseDate->addMonths($months),
+            ]);
+
+            Log::info('Payment completed and subscription extended', [
+                'invoice_id' => $invoice->id,
+                'user_id' => $user->id,
+                'months' => $months,
+                'old_expires_at' => $currentExpiresAt?->toDateTimeString(),
+                'new_expires_at' => $user->expires_at->toDateTimeString(),
+                'telegram_charge_id' => $telegramChargeId,
+                'provider_charge_id' => $providerChargeId,
+            ]);
+        });
 
         // Отправляем подтверждение пользователю
         if ($chatId) {

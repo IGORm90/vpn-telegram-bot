@@ -157,12 +157,16 @@ class TelegramMessageHandlerService
         $this->telegramApiService->sendMessageToChat($chatId, 'Напишите сообщение для всех пользователей');
     }
 
-    public function handleMessageToAllSend(string $message): void
+    public function handleMessageToAllSend(int $chatId, string $message): void
     {
         $users = $this->userRepository->getAll();
-        
+        $keyboardService = new TelegramKeyboardService();
+        $options = [
+            'reply_markup' => $keyboardService->getKeyboard(),
+        ];
         foreach ($users as $user) {
-            $this->telegramApiService->sendMessageToChat($user->telegram_id, $message);
+            $this->telegramApiService->sendMessageToChat($user->telegram_id, $message, $options);
         }
+        $this->telegramApiService->sendMessageToChat($chatId, 'Сообщение доставлено всем пользователям.');
     }
 }

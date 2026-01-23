@@ -3,9 +3,7 @@
 namespace App\Handlers;
 
 use App\Models\StarInvoice;
-use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Services\Telegram\TelegramApiService;
 
@@ -45,11 +43,8 @@ class PreCheckoutHandler
             return;
         }
 
-        $this->processPreCheckout($queryId, $payload, $currency, $totalAmount, $chatId);
-    }
+        $rawPreCheckoutQuery = json_encode($preCheckoutQuery, JSON_UNESCAPED_UNICODE);
 
-    private function processPreCheckout(string $queryId, string $payload, ?string $currency, ?int $totalAmount, ?int $chatId): void
-    {
         // Находим запись по payload
         $invoice = StarInvoice::where('payload', $payload)->first();
 
@@ -58,6 +53,11 @@ class PreCheckoutHandler
             $this->telegramApiService->answerPreCheckoutQuery($queryId, false, 'Счёт не найден');
             return;
         }
+
+        // Сохраняем сырое тело запроса сразу после нахождения invoice
+        $invoice->update([
+            'raw_pre_checkout_query' => $rawPreCheckoutQuery,
+        ]);
 
         if ($payload !== $invoice->payload) {
             Log::error('payload mismatch in successful_payment', [
@@ -91,34 +91,10 @@ class PreCheckoutHandler
             return;
         }
 
-        // Обновляем статус invoice и продлеваем подписку пользователя в транзакции
-        DB::transaction(function () use ($invoice) {
-            $invoice->update([
-                'status' => 'confirmed',
-            ]);
-
-            $user = $invoice->user;
-            $currentExpiresAt = $user->expires_at;
-
-            // Получаем количество месяцев из metadata инвойса
-            $months = $invoice->metadata['months'] ?? 1;
-
-            // Если подписка не установлена или уже истекла — отсчитываем от текущего момента
-            $baseDate = ($currentExpiresAt && $currentExpiresAt->isFuture())
-                ? $currentExpiresAt->copy()
-                : Carbon::now();
-
-            $user->update([
-                'expires_at' => $baseDate->addMonths($months),
-            ]);
-
-            Log::info('User subscription extended', [
-                'user_id' => $user->id,
-                'months' => $months,
-                'old_expires_at' => $currentExpiresAt?->toDateTimeString(),
-                'new_expires_at' => $user->expires_at->toDateTimeString(),
-            ]);
-        });
+        // Обновляем статус invoice
+        $invoice->update([
+            'status' => 'confirmed',
+        ]);
 
         Log::info('Invoice confirmed', [
             'invoice_id' => $invoice->id,

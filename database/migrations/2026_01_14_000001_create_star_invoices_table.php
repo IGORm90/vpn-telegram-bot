@@ -21,12 +21,14 @@ return new class extends Migration
             $table->integer('amount'); // Количество звезд
             $table->string('currency', 10)->default('XTR'); // Валюта (XTR для Telegram Stars)
 
-            $table->enum('status', ['created', 'confirmed', 'complited'])->default('created');
+            $table->enum('status', ['created', 'confirmed', 'completed'])->default('created');
             $table->string('payload')->unique(); // Уникальный идентификатор транзакции (user_123_order_abc)
             $table->string('telegram_payment_charge_id')->nullable()->unique(); // ID транзакции от Telegram
             $table->string('provider_payment_charge_id')->nullable()->unique(); // ID транзакции от Telegram
 
             $table->json('metadata')->nullable(); // Дополнительные данные (детали платежа, ошибки и т.д.)
+            $table->text('raw_pre_checkout_query')->nullable(); // Сырое тело pre_checkout_query
+            $table->text('raw_successful_payment')->nullable(); // Сырое тело successful_payment
 
             $table->timestamps();
 

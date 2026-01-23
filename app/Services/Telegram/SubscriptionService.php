@@ -14,25 +14,25 @@ class SubscriptionService
     private const SUBSCRIPTION_CONFIG = [
         'subscribe_1_month' => [
             'months' => 1,
-            'amount' => 1,
+            'amount' => 100,
             'title' => 'VPN на 1 месяц',
             'description' => 'Доступ к VPN сервису на 1 месяц',
         ],
         'subscribe_3_months' => [
             'months' => 3,
-            'amount' => 1,
+            'amount' => 250,
             'title' => 'VPN на 3 месяца',
             'description' => 'Доступ к VPN сервису на 3 месяца',
         ],
         'subscribe_6_months' => [
             'months' => 6,
-            'amount' => 1,
+            'amount' => 500,
             'title' => 'VPN на 6 месяцев',
             'description' => 'Доступ к VPN сервису на 6 месяцев',
         ],
         'subscribe_1_year' => [
             'months' => 12,
-            'amount' => 1,
+            'amount' => 1000,
             'title' => 'VPN на 1 год',
             'description' => 'Доступ к VPN сервису на 1 год',
         ],

@@ -49,18 +49,13 @@ class UserService
                 ]);
             }
             
-            // тут нужно проверить наличие uri в поле settings
-            if (!empty($user->settings) && is_array($user->settings) && !empty($user->settings['uri'])) {
-                return $user->settings['uri'] ?? null;
-            }
-
-
+            $vpnId = $user->vpn_id;
             // Получаем конфигурацию пользователя
-            $config = $this->vpnApiService->getUserConfig($vpnUser['id']);
+            $config = $this->vpnApiService->getUserConfig($vpnId);
             if (!$config) {
                 Log::error('Failed to get VPN user config', [
                     'telegram_id' => $telegramId,
-                    'vpn_id' => $vpnUser['id'],
+                    'vpn_id' => $vpnId,
                 ]);
                 return null;
             }
