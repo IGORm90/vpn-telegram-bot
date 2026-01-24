@@ -25,7 +25,7 @@ class BearerTokenAuth
             ], 401);
         }
 
-        $validToken = env('API_AUTH_TOKEN');
+        $validToken = config('app.api_auth_token');
 
         if (!$validToken || $token !== $validToken) {
             return response()->json([
