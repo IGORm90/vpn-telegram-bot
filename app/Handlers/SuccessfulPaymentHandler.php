@@ -2,10 +2,9 @@
 
 namespace App\Handlers;
 
+use App\Exceptions\PaymentException;
 use App\Models\StarInvoice;
-use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Services\Telegram\TelegramApiService;
 
@@ -24,12 +23,26 @@ class SuccessfulPaymentHandler
 
         Log::info('SuccessfulPaymentHandler update', ['update' => $update]);
 
+        try {
+            $this->processPayment($update);
+        } catch (PaymentException $e) {
+            Log::error($e->getMessage(), $e->getContext());
+
+            if ($e->getChatId()) {
+                $this->telegramApiService->sendErrorMessage($e->getChatId(), $e->getUserMessage());
+            }
+        } catch (\Exception $e) {
+            throw $e;
+        }
+    }
+
+    private function processPayment(array $update): void
+    {
         $message = $update['message'] ?? null;
         $successfulPayment = $message['successful_payment'] ?? null;
 
         if (!$successfulPayment) {
-            Log::warning('Missing successful_payment in message', ['update' => $update]);
-            return;
+            throw PaymentException::missingSuccessfulPayment($update);
         }
 
         $chatId = $message['chat']['id'] ?? null;
@@ -40,103 +53,69 @@ class SuccessfulPaymentHandler
         $providerChargeId = $successfulPayment['provider_payment_charge_id'] ?? null;
 
         if (!$payload || !$telegramChargeId) {
-            Log::warning('Missing required fields in successful_payment', [
-                'payload' => $payload,
-                'telegramChargeId' => $telegramChargeId,
-            ]);
-            return;
+            throw PaymentException::missingRequiredFields($payload, $telegramChargeId);
         }
 
-        // Находим запись по payload
         $invoice = StarInvoice::where('payload', $payload)->first();
 
         if (!$invoice) {
-            Log::error('Invoice not found for payload', ['payload' => $payload]);
-            if ($chatId) {
-                $this->telegramApiService->sendErrorMessage($chatId, 'Счёт не найден. Обратитесь в поддержку.');
-            }
-            return;
+            throw PaymentException::invoiceNotFound($payload, $chatId);
         }
 
-        // Сохраняем сырое тело запроса сразу после нахождения invoice
+        $this->saveRawPayment($invoice, $successfulPayment);
+        $this->validatePayment($invoice, $payload, $currency, $totalAmount, $chatId);
+        $this->completePayment($invoice, $telegramChargeId, $providerChargeId);
+        $this->sendConfirmation($chatId);
+    }
+
+    private function saveRawPayment(StarInvoice $invoice, array $successfulPayment): void
+    {
         $rawSuccessfulPayment = json_encode($successfulPayment, JSON_UNESCAPED_UNICODE);
         $invoice->update([
             'raw_successful_payment' => $rawSuccessfulPayment,
         ]);
+    }
 
+    private function validatePayment(
+        StarInvoice $invoice,
+        string $payload,
+        ?string $currency,
+        ?int $totalAmount,
+        ?int $chatId
+    ): void {
         if ($payload !== $invoice->payload) {
-            Log::error('payload mismatch in successful_payment', [
-                'expected' => $invoice->payload,
-                'received' => $payload,
-                'payload' => $payload,
-            ]);
-            if ($chatId) {
-                $this->telegramApiService->sendErrorMessage($chatId, 'Ошибка payload. Обратитесь в поддержку.');
-            }
-            return;
+            throw PaymentException::payloadMismatch($invoice->payload, $payload, $chatId);
         }
 
-        // Проверяем валюту
         if ($currency !== $invoice->currency) {
-            Log::error('Currency mismatch in successful_payment', [
-                'expected' => $invoice->currency,
-                'received' => $currency,
-                'payload' => $payload,
-            ]);
-            if ($chatId) {
-                $this->telegramApiService->sendErrorMessage($chatId, 'Ошибка валюты. Обратитесь в поддержку.');
-            }
-            return;
+            throw PaymentException::currencyMismatch($invoice->currency, $currency, $payload, $chatId);
         }
 
-        // Проверяем сумму
         if ($totalAmount !== $invoice->amount) {
-            Log::error('Amount mismatch in successful_payment', [
-                'expected' => $invoice->amount,
-                'received' => $totalAmount,
-                'payload' => $payload,
-            ]);
-            if ($chatId) {
-                $this->telegramApiService->sendErrorMessage($chatId, 'Ошибка суммы. Обратитесь в поддержку.');
-            }
-            return;
+            throw PaymentException::amountMismatch($invoice->amount, $totalAmount, $payload, $chatId);
         }
+    }
 
-        // Обновляем статус invoice и продлеваем подписку пользователя в транзакции
-        DB::transaction(function () use ($invoice, $telegramChargeId, $providerChargeId) {
-            $invoice->update([
-                'status' => 'completed',
-                'telegram_payment_charge_id' => $telegramChargeId,
-                'provider_payment_charge_id' => $providerChargeId,
-            ]);
+    private function completePayment(
+        StarInvoice $invoice,
+        string $telegramChargeId,
+        ?string $providerChargeId
+    ): void {
+        $invoice->update([
+            'status' => 'completed',
+            'telegram_payment_charge_id' => $telegramChargeId,
+            'provider_payment_charge_id' => $providerChargeId,
+        ]);
 
-            $user = $invoice->user;
-            $currentExpiresAt = $user->expires_at;
+        Log::info('Payment completed', [
+            'invoice_id' => $invoice->id,
+            'telegram_charge_id' => $telegramChargeId,
+            'provider_charge_id' => $providerChargeId,
+        ]);
+    }
 
-            // Получаем количество месяцев из metadata инвойса
-            $months = $invoice->metadata['months'] ?? 1;
-
-            // Если подписка не установлена или уже истекла — отсчитываем от текущего момента
-            $baseDate = ($currentExpiresAt && $currentExpiresAt->isFuture())
-                ? $currentExpiresAt->copy()
-                : Carbon::now();
-
-            $user->update([
-                'expires_at' => $baseDate->addMonths($months),
-            ]);
-
-            Log::info('Payment completed and subscription extended', [
-                'invoice_id' => $invoice->id,
-                'user_id' => $user->id,
-                'months' => $months,
-                'old_expires_at' => $currentExpiresAt?->toDateTimeString(),
-                'new_expires_at' => $user->expires_at->toDateTimeString(),
-                'telegram_charge_id' => $telegramChargeId,
-                'provider_charge_id' => $providerChargeId,
-            ]);
-        });
-
-        // Отправляем подтверждение пользователю
+    private function sendConfirmation(?int $chatId): void
+    {
         if ($chatId) {
             $this->telegramApiService->sendMessageToChat(
                 $chatId,

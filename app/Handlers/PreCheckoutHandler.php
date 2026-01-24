@@ -2,8 +2,11 @@
 
 namespace App\Handlers;
 
+use App\Exceptions\PaymentException;
 use App\Models\StarInvoice;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Services\Telegram\TelegramApiService;
 
@@ -30,79 +33,95 @@ class PreCheckoutHandler
         }
 
         $queryId = $preCheckoutQuery['id'] ?? null;
+
+        try {
+            $this->processPreCheckout($preCheckoutQuery, $queryId);
+            $this->telegramApiService->answerPreCheckoutQuery($queryId, true);
+        } catch (PaymentException $e) {
+            Log::error($e->getMessage(), $e->getContext());
+            $this->telegramApiService->answerPreCheckoutQuery($queryId, false, $e->getUserMessage());
+        }
+    }
+
+    private function processPreCheckout(array $preCheckoutQuery, ?string $queryId): void
+    {
         $payload = $preCheckoutQuery['invoice_payload'] ?? null;
         $currency = $preCheckoutQuery['currency'] ?? null;
         $totalAmount = $preCheckoutQuery['total_amount'] ?? null;
-        $chatId = $preCheckoutQuery['from']['id'] ?? null;
 
         if (!$queryId || !$payload) {
-            Log::warning('Missing required fields in pre_checkout_query', [
-                'queryId' => $queryId,
-                'payload' => $payload,
-            ]);
-            return;
+            throw PaymentException::missingPreCheckoutFields($queryId, $payload);
         }
 
-        $rawPreCheckoutQuery = json_encode($preCheckoutQuery, JSON_UNESCAPED_UNICODE);
-
-        // Находим запись по payload
         $invoice = StarInvoice::where('payload', $payload)->first();
 
         if (!$invoice) {
-            Log::error('Invoice not found for payload', ['payload' => $payload]);
-            $this->telegramApiService->answerPreCheckoutQuery($queryId, false, 'Счёт не найден');
-            return;
+            throw PaymentException::invoiceNotFound($payload, null);
         }
 
-        // Сохраняем сырое тело запроса сразу после нахождения invoice
+        $this->saveRawPreCheckout($invoice, $preCheckoutQuery);
+        $this->validatePreCheckout($invoice, $currency, $totalAmount);
+        $this->confirmInvoiceAndExtendSubscription($invoice);
+    }
+
+    private function saveRawPreCheckout(StarInvoice $invoice, array $preCheckoutQuery): void
+    {
+        $rawPreCheckoutQuery = json_encode($preCheckoutQuery, JSON_UNESCAPED_UNICODE);
         $invoice->update([
             'raw_pre_checkout_query' => $rawPreCheckoutQuery,
         ]);
+    }
 
-        if ($payload !== $invoice->payload) {
-            Log::error('payload mismatch in successful_payment', [
-                'expected' => $invoice->payload,
-                'received' => $payload,
-                'payload' => $payload,
-            ]);
-            if ($chatId) {
-                $this->telegramApiService->sendErrorMessage($chatId, 'Ошибка payload. Обратитесь в поддержку.');
-            }
-            return;
-        }
-
-        // Проверяем валюту
+    private function validatePreCheckout(
+        StarInvoice $invoice,
+        ?string $currency,
+        ?int $totalAmount
+    ): void {
         if ($currency !== $invoice->currency) {
-            Log::error('Currency mismatch', [
-                'expected' => $invoice->currency,
-                'received' => $currency,
-            ]);
-            $this->telegramApiService->answerPreCheckoutQuery($queryId, false, 'Неверная валюта');
-            return;
+            throw PaymentException::currencyMismatch(
+                $invoice->currency,
+                $currency ?? 'null',
+                $invoice->payload,
+                null
+            );
         }
 
-        // Проверяем сумму
         if ($totalAmount !== $invoice->amount) {
-            Log::error('Amount mismatch', [
-                'expected' => $invoice->amount,
-                'received' => $totalAmount,
-            ]);
-            $this->telegramApiService->answerPreCheckoutQuery($queryId, false, 'Неверная сумма');
-            return;
+            throw PaymentException::amountMismatch(
+                $invoice->amount,
+                $totalAmount ?? 0,
+                $invoice->payload,
+                null
+            );
         }
+    }
 
-        // Обновляем статус invoice
-        $invoice->update([
-            'status' => 'confirmed',
-        ]);
+    private function confirmInvoiceAndExtendSubscription(StarInvoice $invoice): void
+    {
+        DB::transaction(function () use ($invoice) {
+            $invoice->update([
+                'status' => 'confirmed',
+            ]);
 
-        Log::info('Invoice confirmed', [
-            'invoice_id' => $invoice->id,
-            'payload' => $payload,
-            'query_id' => $queryId,
-        ]);
+            $user = $invoice->user;
+            $currentExpiresAt = $user->expires_at;
+            $months = $invoice->metadata['months'] ?? 1;
 
-        // Отвечаем Telegram, что всё ок
-        $this->telegramApiService->answerPreCheckoutQuery($queryId, true);
+            $baseDate = ($currentExpiresAt && $currentExpiresAt->isFuture())
+                ? $currentExpiresAt->copy()
+                : Carbon::now();
+
+            $user->update([
+                'expires_at' => $baseDate->addMonths($months),
+            ]);
+
+            Log::info('Invoice confirmed and subscription extended', [
+                'invoice_id' => $invoice->id,
+                'user_id' => $user->id,
+                'months' => $months,
+                'old_expires_at' => $currentExpiresAt?->toDateTimeString(),
+                'new_expires_at' => $user->expires_at->toDateTimeString(),
+            ]);
+        });
     }
 }
