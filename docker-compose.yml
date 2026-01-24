@@ -31,6 +31,7 @@ services:
       - VPN_API_BASE_URL=${VPN_API_BASE_URL}
       - VPN_API_TOKEN=${VPN_API_TOKEN}
       - ADMIN_CHAT_ID=${ADMIN_CHAT_ID}
+      - API_AUTH_TOKEN=${API_AUTH_TOKEN}
       - LOG_CHANNEL=${LOG_CHANNEL:-stack}
       - LOG_LEVEL=${LOG_LEVEL:-info}
     deploy:
