@@ -45,7 +45,8 @@ class TelegramMessageHandlerService
 
     public function handleMainPanel(int $chatId): void
     {
-        $keyboardService = new TelegramKeyboardService();
+        $user = $this->userRepository->findByTelegramId($chatId);
+        $keyboardService = new TelegramKeyboardService($user);
         $options = [
             'reply_markup' => $keyboardService->getKeyboard(),
         ];
@@ -54,7 +55,8 @@ class TelegramMessageHandlerService
 
     public function handleAdminPanel(int $chatId): void
     {
-        $keyboardService = new TelegramKeyboardService();
+        $user = $this->userRepository->findByTelegramId($chatId);
+        $keyboardService = new TelegramKeyboardService($user);
         $options = [
             'reply_markup' => $keyboardService->getAdminKeyboard(),
         ];
@@ -83,7 +85,21 @@ class TelegramMessageHandlerService
         $this->telegramApiService->sendMessageToChat($chatId, $promptMessage);
     }
 
-    public function handleBalance(int $chatId): void
+    public function handleSubscription(int $chatId): void
+    {
+        $user = $this->userRepository->findByTelegramId($chatId);
+        if (!$user) {
+            $this->telegramApiService->sendErrorMessage($chatId);
+            return;
+        }
+
+        $this->telegramApiService->sendMessageToChat($chatId, $this->localeService->get('subscription.expires_at', [
+            '{expires_at}' => $user->expires_at->format('d.m.Y')
+        ]));
+    }
+
+
+    public function handleListSubscriptions(int $chatId): void
     {
         $user = $this->userRepository->findByTelegramId($chatId);
         if (!$user) {
@@ -95,7 +111,7 @@ class TelegramMessageHandlerService
         $options = [
             'reply_markup' => $keyboardService->getSubscriptionsKeyboard(),
         ];
-        $this->telegramApiService->sendMessageToChat($chatId, $this->localeService->get('subscription.message', [
+        $this->telegramApiService->sendMessageToChat($chatId, $this->localeService->get('subscription.subscription_message', [
             '{expires_at}' => $user->expires_at->format('d.m.Y')
         ]), $options);
     }

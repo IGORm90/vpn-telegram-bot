@@ -76,7 +76,7 @@ class MessageHandler
         if ($this->isAdmin) {
             $cachekey = $chatId . ':message_to_all';
             if ($this->cache->has($cachekey)) {
-                $this->telegramMessageHandlerService->handleMessageToAllSend($text);
+                $this->telegramMessageHandlerService->handleMessageToAllSend($chatId, $text);
                 $this->cache->forget($cachekey);
                 return;
             }

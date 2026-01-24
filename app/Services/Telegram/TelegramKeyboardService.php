@@ -12,11 +12,12 @@ class TelegramKeyboardService
      */
     const BUTTON_HANDLERS = [
         '/start' => ['handleStartMessage', false],
+        '/admin' => ['handleMainPanel', false],
         'Главная' => ['handleMainPanel', false],
         'Подключить vpn' => ['handleConnectVpn', true],
         'Написать в поддержку' => ['handleSupport', false],
-        'Подписка' => ['handleBalance', false],
-        'Оплата доступа' => ['handleBalance', false],
+        'Подписка' => ['handleSubscription', false],
+        'Оплата доступа' => ['handleListSubscriptions', false],
         'Админ панель' => ['handleAdminPanel', false],
         'Написать пользователю' => ['handleMessageToUserStart', false],
         'Написать всем' => ['handleMessageToAllStart', false],

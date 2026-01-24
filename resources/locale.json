@@ -20,7 +20,8 @@
     "subscription_expired": "Ваша подписка истекла. Пожалуйста, продлите подписку для продолжения использования."
   },
   "subscription": {
-    "message": "Доступ к vpn активен до {expires_at}"
+    "expires_at": "Доступ к vpn активен до {expires_at}",
+    "subscription_message": "Выберите на сколько месяцев хотите продлить доступ:"
   }
 }
 
