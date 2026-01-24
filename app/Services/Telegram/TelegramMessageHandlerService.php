@@ -2,9 +2,10 @@
 
 namespace App\Services\Telegram;
 
-use App\Services\LocaleService;
+use Carbon\Carbon;
 use App\Services\UserService;
 use App\Services\CacheService;
+use App\Services\LocaleService;
 use App\Repositories\UserRepository;
 
 class TelegramMessageHandlerService
@@ -20,7 +21,7 @@ class TelegramMessageHandlerService
         $this->userRepository = new UserRepository();
     }
 
-    public function handleStartMessage(int $chatId): void
+    public function handleStartMessage(int $chatId, string $username): void
     {
         $user = $this->userRepository->findByTelegramId($chatId);
 
@@ -30,6 +31,13 @@ class TelegramMessageHandlerService
         ];
         
         if (!$user) {
+            $this->userRepository->create([
+                'telegram_id' => $chatId,
+                'telegram_username' => $username,
+                'is_active' => true,
+                'expires_at' => Carbon::now()->addDays(14),
+            ]);
+
             $imagePath = __DIR__ . '/../../../resources/images/image.png';
             
             $message = $this->localeService->get('welcome.message');

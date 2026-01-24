@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\User;
 use Illuminate\Support\Facades\Log;
 
 class VpnApiService
@@ -15,13 +16,15 @@ class VpnApiService
         $this->httpService = new HttpService();
     }
 
-    public function createUser(string $username): ?array
+    public function createUser(User $user): ?array
     {
         $response = null;
         
         try {
             $response = $this->httpService->post($this->baseUrl . '/api/users', [
-                'username' => $username,
+                'username' => $user->telegram_username,
+                'is_active' => $user->is_active,
+                'expires_at' => $user->expires_at->toIso8601ZuluString(),
             ], [
                 'Authorization' => 'Bearer ' . env('VPN_API_TOKEN'),
             ]);
@@ -76,15 +79,16 @@ class VpnApiService
         return null;
     }
 
-    public function setUserActive(int $userId, bool $isActive): ?bool
+    public function setUserActive(User $user): ?bool
     {
         $response = null;
-        
+
         try {
             $response = $this->httpService->patch(
-                $this->baseUrl . "/api/users/$userId",
+                $this->baseUrl . "/api/users/$user->vpn_id",
                 [
-                    'is_active' => $isActive,
+                    'is_active' => $user->is_active,
+                    'expires_at' => $user->expires_at->toIso8601ZuluString(),
                 ],
                 [
                     'Authorization' => 'Bearer ' . env('VPN_API_TOKEN'),

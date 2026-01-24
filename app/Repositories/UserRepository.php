@@ -4,6 +4,7 @@ namespace App\Repositories;
 
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class UserRepository
 {
@@ -128,6 +129,24 @@ class UserRepository
     public function getAll(): Collection
     {
         return User::all();
+    }
+
+    /**
+     * Получить пользователей с пагинацией и фильтрацией
+     *
+     * @param int $perPage Количество записей на страницу
+     * @param string|null $telegramUsername Фильтр по telegram_username (частичное совпадение)
+     * @return LengthAwarePaginator
+     */
+    public function getPaginated(int $perPage = 30, ?string $telegramUsername = null): LengthAwarePaginator
+    {
+        $query = User::query();
+
+        if ($telegramUsername !== null && $telegramUsername !== '') {
+            $query->where('telegram_username', 'like', '%' . $telegramUsername . '%');
+        }
+
+        return $query->orderBy('created_at', 'desc')->paginate($perPage);
     }
 }
 

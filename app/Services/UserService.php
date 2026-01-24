@@ -10,7 +10,6 @@ class UserService
 {
     private UserRepository $userRepository;
     private VpnApiService $vpnApiService;
-
     public function __construct()
     {
         $this->userRepository = new UserRepository();
@@ -33,7 +32,7 @@ class UserService
 
 
             if ($user->vpn_id === null) {
-                $vpnUser = $this->vpnApiService->createUser($username);
+                $vpnUser = $this->vpnApiService->createUser($user);
                 if (!$vpnUser) {
                     Log::error('Failed to create VPN user', [
                         'telegram_id' => $telegramId,
@@ -74,6 +73,28 @@ class UserService
             ]);
             return null;
         }
+    }
+
+    /**
+     * Обновить данные пользователя по ID
+     *
+     * @param int $id
+     * @param array $data
+     * @return \App\Models\User|null
+     */
+    public function updateUser(int $id, array $data): ?\App\Models\User
+    {
+        $user = $this->userRepository->findById($id);
+
+        if (!$user) {
+            return null;
+        }
+
+        $this->userRepository->update($user, $data);
+        
+        $this->vpnApiService->setUserActive($user);
+
+        return $user->fresh();
     }
 }
 

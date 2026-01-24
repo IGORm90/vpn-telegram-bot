@@ -20,3 +20,9 @@ $router->get('/health', function () {
 
 // Telegram webhook
 $router->post('/webhook', 'MainController@handler');
+
+// API routes (protected by Bearer token)
+$router->group(['middleware' => 'bearer.auth'], function () use ($router) {
+    $router->get('/api/users', 'UserController@index');
+    $router->patch('/api/users/{id}', 'UserController@update');
+});

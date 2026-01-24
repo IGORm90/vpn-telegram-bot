@@ -9,9 +9,10 @@ class TelegramKeyboardService
 {
     /**
      * Маппинг кнопок и команд: текст => [handler, needsUsername]
+     * App\Services\Telegram\TelegramMessageHandlerService
      */
     const BUTTON_HANDLERS = [
-        '/start' => ['handleStartMessage', false],
+        '/start' => ['handleStartMessage', true],
         '/admin' => ['handleMainPanel', false],
         'Главная' => ['handleMainPanel', false],
         'Подключить vpn' => ['handleConnectVpn', true],
