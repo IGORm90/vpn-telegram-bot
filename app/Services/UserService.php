@@ -48,15 +48,23 @@ class UserService
                 ]);
             }
             
-            $vpnId = $user->vpn_id;
             // Получаем конфигурацию пользователя
-            $config = $this->vpnApiService->getUserConfig($vpnId);
+            $config = $this->vpnApiService->getUserConfig($user);
             if (!$config) {
-                Log::error('Failed to get VPN user config', [
-                    'telegram_id' => $telegramId,
-                    'vpn_id' => $vpnId,
+                $vpnUser = $this->vpnApiService->createUser($user);
+
+                if (!$vpnUser) {
+                    Log::error('Failed to create VPN user', [
+                        'telegram_id' => $telegramId,
+                        'username' => $username,
+                    ]);
+
+                    return null;
+                }
+
+                $this->userRepository->update($user, [
+                    'vpn_id' => $vpnUser['id'],
                 ]);
-                return null;
             }
 
             // Сохраняем конфигурацию в БД

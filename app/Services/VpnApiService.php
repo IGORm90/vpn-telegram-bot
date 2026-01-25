@@ -47,13 +47,13 @@ class VpnApiService
         return null;
     }
 
-    public function getUserConfig(int $userId): ?array
+    public function getUserConfig(User $user): ?array
     {
         $response = null;
         
         try {
             $response = $this->httpService->get(
-                $this->baseUrl . "/api/users/$userId/config",
+                $this->baseUrl . "/api/users/$user->vpn_id/config",
                 [],
                 [
                     'Authorization' => 'Bearer ' . env('VPN_API_TOKEN'),
