@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\User;
+use App\Models\VpnServer;
 use Illuminate\Support\Facades\Log;
 
 class VpnApiService
@@ -16,17 +17,17 @@ class VpnApiService
         $this->httpService = new HttpService();
     }
 
-    public function createUser(User $user): ?array
+    public function createUser(User $user, VpnServer $server): ?array
     {
         $response = null;
         
         try {
-            $response = $this->httpService->post($this->baseUrl . '/api/users', [
+            $response = $this->httpService->post($server->vpn_url . '/api/users', [
                 'username' => $user->telegram_username,
                 'is_active' => $user->is_active,
                 'expires_at' => $user->expires_at->toIso8601ZuluString(),
             ], [
-                'Authorization' => 'Bearer ' . env('VPN_API_TOKEN'),
+                'Authorization' => 'Bearer ' . $server->bearer_token,
             ]);
 
             if ($response && $response['success'] && isset($response['data']['data'])) {
@@ -47,16 +48,16 @@ class VpnApiService
         return null;
     }
 
-    public function getUserConfig(User $user): ?array
+    public function getUserConfig(User $user, VpnServer $server): ?array
     {
         $response = null;
         
         try {
             $response = $this->httpService->get(
-                $this->baseUrl . "/api/users/$user->vpn_id/config",
+                $server->vpn_url . "/api/users/$user->vpn_id/config",
                 [],
                 [
-                    'Authorization' => 'Bearer ' . env('VPN_API_TOKEN'),
+                    'Authorization' => 'Bearer ' . $server->bearer_token,
                 ]
             );
 
@@ -79,7 +80,7 @@ class VpnApiService
         return null;
     }
 
-    public function setUserActive(User $user): ?bool
+    public function setUserActive(User $user): bool
     {
         $response = null;
 
@@ -108,9 +109,9 @@ class VpnApiService
                 'response' => $response,
             ]);
 
-            return null;
+            return false;
         }
 
-        return null;
+        return true;
     }
 }

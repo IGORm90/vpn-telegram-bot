@@ -3,6 +3,7 @@
 namespace App\Services\Telegram;
 
 use App\Models\User;
+use App\Services\VpnServerService;
 
 
 class TelegramKeyboardService
@@ -15,7 +16,7 @@ class TelegramKeyboardService
         '/start' => ['handleStartMessage', true],
         '/admin' => ['handleMainPanel', false],
         'Главная' => ['handleMainPanel', false],
-        'Подключить vpn' => ['handleConnectVpn', true],
+        'Подключить vpn' => ['handleServersList', true],
         'Написать в поддержку' => ['handleSupport', false],
         'Подписка' => ['handleSubscription', false],
         'Оплата доступа' => ['handleListSubscriptions', false],
@@ -53,10 +54,12 @@ class TelegramKeyboardService
 
     private $isAdmin = false;
     private SubscriptionService $subscriptionService;
+    private VpnServerService $vpnServerService;
 
     public function __construct(?User $user = null)
     {
         $this->subscriptionService = new SubscriptionService();
+        $this->vpnServerService = new VpnServerService();
 
         if ($user) {
             $adminChatId = intval(env('ADMIN_CHAT_ID'));
@@ -103,6 +106,33 @@ class TelegramKeyboardService
                 [
                     'text' => $text,
                     'callback_data' => $callbackData,
+                ]
+            ];
+
+            $inlineKeyboard[] = $row;
+        }
+
+        return [
+            'inline_keyboard' => $inlineKeyboard,
+        ];
+    }
+
+    /**
+     * Получить inline-клавиатуру со списком VPN серверов
+     *
+     * @return array
+     */
+    public function getVpnServersKeyboard(): array
+    {
+        $inlineKeyboard = [];
+        $servers = $this->vpnServerService->getAllServers();
+
+        foreach ($servers as $server) {
+            $text = $server->title . ' ' . $server->flag_emoji;
+            $row = [
+                [
+                    'text' => $text,
+                    'callback_data' => 'server_' . $server->id,
                 ]
             ];
 

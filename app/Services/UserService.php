@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Carbon\Carbon;
+use App\Models\VpnServer;
 use Illuminate\Support\Facades\Log;
 use App\Repositories\UserRepository;
 
@@ -19,7 +20,7 @@ class UserService
     /**
      * Создать конфигурацию пользователя
      */
-    public function createUserConfig(int $telegramId, string $username): ?string
+    public function getUserConfig(int $telegramId, VpnServer $server, string $username): ?string
     {
         try {
             // Создаем пользователя в БД
@@ -32,7 +33,7 @@ class UserService
 
 
             if ($user->vpn_id === null) {
-                $vpnUser = $this->vpnApiService->createUser($user);
+                $vpnUser = $this->vpnApiService->createUser($user, $server);
                 if (!$vpnUser) {
                     Log::error('Failed to create VPN user', [
                         'telegram_id' => $telegramId,
@@ -49,9 +50,9 @@ class UserService
             }
             
             // Получаем конфигурацию пользователя
-            $config = $this->vpnApiService->getUserConfig($user);
+            $config = $this->vpnApiService->getUserConfig($user, $server);
             if (!$config) {
-                $vpnUser = $this->vpnApiService->createUser($user);
+                $vpnUser = $this->vpnApiService->createUser($user, $server);
 
                 if (!$vpnUser) {
                     Log::error('Failed to create VPN user', [

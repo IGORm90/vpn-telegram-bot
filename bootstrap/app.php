@@ -98,13 +98,6 @@ $app->routeMiddleware([
 */
 
 $app->register(Illuminate\Redis\RedisServiceProvider::class);
-
-// Route list command (dev only)
-// @phpcs:ignore
-$routesListProvider = 'Vluzrmos\LumenRoutesList\RoutesCommandServiceProvider';
-if (class_exists($routesListProvider)) {
-    $app->register($routesListProvider);
-}
 // $app->register(App\Providers\AppServiceProvider::class);
 // $app->register(App\Providers\AuthServiceProvider::class);
 // $app->register(App\Providers\EventServiceProvider::class);

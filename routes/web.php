@@ -25,4 +25,9 @@ $router->post('/webhook', 'MainController@handler');
 $router->group(['middleware' => 'bearer.auth'], function () use ($router) {
     $router->get('/api/users', 'UserController@index');
     $router->patch('/api/users/{id}', 'UserController@update');
+    
+    // VPN Server routes
+    $router->get('/api/vpn-servers', 'VpnServerController@index');
+    $router->post('/api/vpn-servers', 'VpnServerController@store');
+    $router->delete('/api/vpn-servers/{id}', 'VpnServerController@destroy');
 });

@@ -6,16 +6,19 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use App\Services\Telegram\TelegramApiService;
 use App\Services\Telegram\SubscriptionService;
+use App\Services\Telegram\TelegramMessageHandlerService;
 
 class CallbackHandler
 {
     private TelegramApiService $telegramApiService;
     private SubscriptionService $subscriptionService;
+    private TelegramMessageHandlerService $telegramMessageHandlerService;
 
     public function __construct()
     {
         $this->telegramApiService = new TelegramApiService();
         $this->subscriptionService = new SubscriptionService();
+        $this->telegramMessageHandlerService = new TelegramMessageHandlerService();
     }
 
     public function handle(Request $request): void
@@ -43,6 +46,13 @@ class CallbackHandler
             return;
         }
 
+        if ($this->isVpnServerCallback($callbackData)) {
+
+            $serverId = explode('_', $callbackData)[1];
+            $this->telegramMessageHandlerService->handleConnectVpn($chatId, $serverId, $username);
+            return;
+        }
+
         // Обработка подписок
         if ($this->subscriptionService->isSubscriptionCallback($callbackData)) {
             $this->handleSubscriptionCallback($chatId, $callbackData, $username);
@@ -62,5 +72,9 @@ class CallbackHandler
         if (!$success) {
             $this->telegramApiService->sendErrorMessage($chatId);
         }
+    }
+
+    private function isVpnServerCallback(string $callbackData): bool {
+        return str_starts_with($callbackData, 'server_');
     }
 }

@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use App\Services\UserService;
 use App\Services\CacheService;
 use App\Services\LocaleService;
+use App\Services\VpnServerService;
 use App\Repositories\UserRepository;
 
 class TelegramMessageHandlerService
@@ -13,12 +14,13 @@ class TelegramMessageHandlerService
     private TelegramApiService $telegramApiService;
     private LocaleService $localeService;
     private UserRepository $userRepository;
-    
+    private VpnServerService $vpnServerService;
     public function __construct()
     {
         $this->telegramApiService = new TelegramApiService();
         $this->localeService = new LocaleService();
         $this->userRepository = new UserRepository();
+        $this->vpnServerService = new VpnServerService();
     }
 
     public function handleStartMessage(int $chatId, string $username): void
@@ -71,10 +73,19 @@ class TelegramMessageHandlerService
         $this->telegramApiService->sendMessageToChat($chatId, 'Админ панель', $options);
     }
 
-    public function handleConnectVpn(int $chatId, string $username): void
+    public function handleConnectVpn(int $chatId, string $serverId, string $username): void
     {
         $userService = new UserService();
-        $configString = $userService->createUserConfig($chatId, $username);
+
+        $server = $this->vpnServerService->getServerById($serverId);
+
+        if (!$server) {
+            $errorMessage = $this->localeService->get('errors.server_not_found');
+            $this->telegramApiService->sendMessageToChat($chatId, $errorMessage);
+            return;
+        }
+
+        $configString = $userService->getUserConfig($chatId, $server, $username);
         if (!$configString) {
             $errorMessage = $this->localeService->get('errors.config_creation_failed');
             $this->telegramApiService->sendMessageToChat($chatId, $errorMessage);
@@ -104,6 +115,15 @@ class TelegramMessageHandlerService
         $this->telegramApiService->sendMessageToChat($chatId, $this->localeService->get('subscription.expires_at', [
             '{expires_at}' => $user->expires_at->format('d.m.Y')
         ]));
+    }
+
+    public function handleServersList(int $chatId): void
+    {
+        $keyboardService = new TelegramKeyboardService();
+        $options = [
+            'reply_markup' => $keyboardService->getVpnServersKeyboard(),
+        ];
+        $this->telegramApiService->sendMessageToChat($chatId, 'Список VPN серверов', $options);
     }
 
 
