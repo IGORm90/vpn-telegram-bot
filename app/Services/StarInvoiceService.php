@@ -270,6 +270,6 @@ class StarInvoiceService
             $amount
         );
 
-        $this->telegramApiService->sendMessageToChat($userId, $message);
+        $this->telegramApiService->sendMessageToChat($message);
     }
 }

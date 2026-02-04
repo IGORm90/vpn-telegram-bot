@@ -17,7 +17,7 @@ class AdminService
 
     public function sendMesssageToAdmin(string $message): void
     {
-        $this->telegramApiService->sendMessageToChat($this->adminChatId, $message);
+        $this->telegramApiService->sendMessageToChat($message, [], $this->adminChatId);
     }
 }
 

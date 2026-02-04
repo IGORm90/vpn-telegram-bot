@@ -2,6 +2,7 @@
 
 namespace App\Services\Telegram;
 
+use App\Entities\UserEntity;
 use App\Services\HttpService;
 use Illuminate\Support\Facades\Log;
 
@@ -39,8 +40,13 @@ class TelegramApiService
      * @param array $options
      * @return array|null
      */
-    public function sendMessageToChat($chatId, string $text, array $options = []): ?array
+    public function sendMessageToChat(string $text, array $options = [], $chatId = null): ?array
     {
+        $chatId = $chatId ?? UserEntity::getUserTelegramId();
+        if (!$chatId) {
+            return null;
+        }
+
         $data = array_merge([
             'chat_id' => $chatId,
             'text' => $text,
@@ -264,12 +270,13 @@ class TelegramApiService
         return $this->baseUrl;
     }
 
-    public function sendErrorMessage(int $chatId, string $errorMessage = ''): void
+    public function sendErrorMessage(string $errorMessage = ''): void
     {
         if (!$errorMessage) {
             $errorMessage = self::ERROR_MESSAGE;
         }
-        $this->sendMessageToChat($chatId, $errorMessage);
+
+        $this->sendMessageToChat($errorMessage);
     }
 }
 

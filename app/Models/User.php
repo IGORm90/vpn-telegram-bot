@@ -35,6 +35,7 @@ class User extends Model
         'is_active' => 'boolean',
         'expires_at' => 'datetime',
         'settings' => 'array',
+        'balance' => 'integer',
     ];
 
     /**

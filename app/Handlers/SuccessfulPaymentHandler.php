@@ -29,7 +29,7 @@ class SuccessfulPaymentHandler
             Log::error($e->getMessage(), $e->getContext());
 
             if ($e->getChatId()) {
-                $this->telegramApiService->sendErrorMessage($e->getChatId(), $e->getUserMessage());
+                $this->telegramApiService->sendErrorMessage($e->getUserMessage());
             }
         } catch (\Exception $e) {
             throw $e;
@@ -118,7 +118,6 @@ class SuccessfulPaymentHandler
     {
         if ($chatId) {
             $this->telegramApiService->sendMessageToChat(
-                $chatId,
                 '✅ Оплата прошла успешно! Спасибо за покупку.'
             );
         }

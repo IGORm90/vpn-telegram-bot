@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Entities\UserEntity;
 use Illuminate\Http\Request;
 use App\Handlers\MessageHandler;
 use App\Handlers\CallbackHandler;
@@ -37,10 +38,9 @@ class MainController extends Controller
      */
     public function handler(Request $request): JsonResponse
     {
-        $chatId = null;
         try {
             $data = $request->all();
-            $chatId = $this->extractChatId($data);
+            $this->createUserEntity($data);
 
             $this->routeUpdate($request, $data);
         } catch (ValidationException $e) {
@@ -49,9 +49,7 @@ class MainController extends Controller
                 'request' => $request->all(),
             ]);
 
-            if ($chatId) {
-                $this->telegramApiService->sendErrorMessage($chatId);
-            }
+            $this->telegramApiService->sendErrorMessage();
         } catch (\Exception $e) {
             Log::error('Telegram webhook handler error', [
                 'message' => $e->getMessage(),
@@ -59,9 +57,7 @@ class MainController extends Controller
                 'request' => $request->all(),
             ]);
 
-            if ($chatId) {
-                $this->telegramApiService->sendErrorMessage($chatId);
-            }
+            $this->telegramApiService->sendErrorMessage();
         }
 
         return response()->json(['ok' => true]);
@@ -120,6 +116,39 @@ class MainController extends Controller
         }
 
         return null;
+    }
+
+    private function createUserEntity(array $data): void
+    {
+        $telegramId = null;
+        $telegramUsername = null;
+        Log::info('createUserEntity data', ['data' => $data]);
+
+        // Из обычного сообщения
+        if (isset($data['message']['from']['id']) && isset($data['message']['from']['username'])) {
+            $telegramId = (int) $data['message']['chat']['id'];
+            $telegramUsername = $data['message']['from']['username'] ;
+        }
+
+        // Из callback_query
+        if (isset($data['callback_query']['from']['id']) && isset($data['callback_query']['from']['username'])) {
+            $telegramId = (int) $data['callback_query']['message']['chat']['id'];
+            $telegramUsername = $data['callback_query']['from']['username'];
+        }
+
+        // Из pre_checkout_query (chat_id нет, но есть user_id)
+        if (isset($data['pre_checkout_query']['from']['id'])) {
+            $telegramId = (int) $data['pre_checkout_query']['from']['id'];
+        }
+
+        // Из successful_payment
+        if (isset($data['message']['chat']['id'])) {
+            $telegramId = (int) $data['message']['chat']['id'];
+        }
+    
+        if ($telegramId) {
+            UserEntity::init($telegramId, $telegramUsername);
+        }
     }
 }
 

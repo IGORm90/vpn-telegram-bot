@@ -2,6 +2,7 @@
 
 namespace App\Repositories;
 
+use Carbon\Carbon;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -43,12 +44,17 @@ class UserRepository
     /**
      * Получить пользователя по telegram_id или создать нового
      */
-    public function getOrCreate(array $data): User
+    public function getOrCreate(int $telegramId, string $username): User
     {
-        return User::firstOrCreate(
-            ['telegram_id' => $data['telegram_id']],
-            $data
-        );
+        return User::firstOrCreate([
+                'telegram_id' => $telegramId,
+            ], [
+                'telegram_username' => $username,
+                'is_active' => true,
+                'expires_at' => Carbon::now()->addDays(14),
+                'balance' => 0,
+                'settings' => [],
+            ]);
     }
 
     /**

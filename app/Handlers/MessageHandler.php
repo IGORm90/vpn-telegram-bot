@@ -103,7 +103,7 @@ class MessageHandler
 
             $this->cache->forget($cachekey);
             $confirmationMessage = $this->localeService->get('support.confirmation');
-            $this->telegramApiService->sendMessageToChat($chatId, $confirmationMessage);
+            $this->telegramApiService->sendMessageToChat($confirmationMessage);
         }
     }
 }

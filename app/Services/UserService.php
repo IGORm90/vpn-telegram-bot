@@ -23,14 +23,7 @@ class UserService
     public function getUserConfig(int $telegramId, VpnServer $server, string $username): ?string
     {
         try {
-            // Создаем пользователя в БД
-            $user = $this->userRepository->getOrCreate([
-                'telegram_id' => $telegramId,
-                'telegram_username' => $username,
-                'is_active' => true,
-                'expires_at' => Carbon::now()->addDays(14),
-            ]);
-
+            $user = $this->userRepository->getOrCreate($telegramId, $username);
 
             if ($user->vpn_id === null) {
                 $vpnUser = $this->vpnApiService->createUser($user, $server);

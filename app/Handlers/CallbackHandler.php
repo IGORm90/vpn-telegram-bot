@@ -70,7 +70,7 @@ class CallbackHandler
         $success = $this->subscriptionService->handleSubscription($chatId, $callbackData, $username);
 
         if (!$success) {
-            $this->telegramApiService->sendErrorMessage($chatId);
+            $this->telegramApiService->sendErrorMessage();
         }
     }
 
