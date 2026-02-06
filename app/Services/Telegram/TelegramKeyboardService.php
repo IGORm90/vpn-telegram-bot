@@ -9,20 +9,20 @@ use App\Services\VpnServerService;
 class TelegramKeyboardService
 {
     /**
-     * Маппинг кнопок и команд: текст => [handler, needsUsername]
+     * Маппинг кнопок и команд: текст => [handler]
      * App\Services\Telegram\TelegramMessageHandlerService
      */
     const BUTTON_HANDLERS = [
-        '/start' => ['handleStartMessage', true],
-        '/admin' => ['handleMainPanel', false],
-        'Главная' => ['handleMainPanel', false],
-        'Подключить vpn' => ['handleServersList', true],
-        'Написать в поддержку' => ['handleSupport', false],
-        'Подписка' => ['handleSubscription', false],
-        'Оплата доступа' => ['handleListSubscriptions', false],
-        'Админ панель' => ['handleAdminPanel', false],
-        'Написать пользователю' => ['handleMessageToUserStart', false],
-        'Написать всем' => ['handleMessageToAllStart', false],
+        '/start' => ['handleStartMessage'],
+        '/admin' => ['handleMainPanel'],
+        'Главная' => ['handleMainPanel'],
+        'Подключить vpn' => ['handleServersList'],
+        'Написать в поддержку' => ['handleSupport'],
+        'Подписка' => ['handleSubscription'],
+        'Оплата доступа' => ['handleListSubscriptions'],
+        'Админ панель' => ['handleAdminPanel'],
+        'Написать пользователю' => ['handleMessageToUserStart'],
+        'Написать всем' => ['handleMessageToAllStart'],
     ];
 
     const KEYBOARD = [

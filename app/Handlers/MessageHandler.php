@@ -59,10 +59,8 @@ class MessageHandler
 
         $buttonHandler = TelegramKeyboardService::BUTTON_HANDLERS[$text] ?? null;
         if ($buttonHandler) {
-            [$handler, $needsUsername] = $buttonHandler;
-            $needsUsername
-                ? $this->telegramMessageHandlerService->$handler($chatId, $username)
-                : $this->telegramMessageHandlerService->$handler($chatId);
+            $handler = $buttonHandler[0];
+            $this->telegramMessageHandlerService->$handler($chatId);
             return;
         }
 
@@ -76,7 +74,7 @@ class MessageHandler
         if ($this->isAdmin) {
             $cachekey = $chatId . ':message_to_all';
             if ($this->cache->has($cachekey)) {
-                $this->telegramMessageHandlerService->handleMessageToAllSend($chatId, $text);
+                $this->telegramMessageHandlerService->handleMessageToAllSend($text);
                 $this->cache->forget($cachekey);
                 return;
             }
@@ -86,11 +84,11 @@ class MessageHandler
                 $targetUsername = $this->cache->get($cachekey);
 
                 if ($targetUsername === 'start') {
-                    $this->telegramMessageHandlerService->handleMessageToUserSaveUsername($chatId, $text);
+                    $this->telegramMessageHandlerService->handleMessageToUserSaveUsername($text);
                     return;
                 }
 
-                $this->telegramMessageHandlerService->handleMessageToUserSendMessage($chatId, $text);
+                $this->telegramMessageHandlerService->handleMessageToUserSendMessage($text);
                 $this->cache->forget($cachekey);
                 return;
             }

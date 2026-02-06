@@ -2,7 +2,6 @@
 
 namespace App\Repositories;
 
-use Carbon\Carbon;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -51,7 +50,6 @@ class UserRepository
             ], [
                 'telegram_username' => $username,
                 'is_active' => true,
-                'expires_at' => Carbon::now()->addDays(14),
                 'balance' => 0,
                 'settings' => [],
             ]);

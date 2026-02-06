@@ -24,12 +24,14 @@ class TelegramMessageHandlerService
         $this->vpnServerService = new VpnServerService();
     }
 
-    public function handleStartMessage(int $chatId, string $username): void
+    public function handleStartMessage(): void
     {
-        $isNewUser = !$this->userRepository->findByTelegramId($chatId);
-        
-        // Инициализируем UserEntity (создаст пользователя если его нет)
-        $user = UserEntity::init($chatId, $username);
+        $user = UserEntity::getInstance();
+        if (!$user->expiresAt !== null) {
+            $isNewUser = true;
+        } else {
+            $isNewUser = false;
+        }
 
         $keyboardService = new TelegramKeyboardService($user->getModel());
         $options = [
@@ -40,7 +42,7 @@ class TelegramMessageHandlerService
             $imagePath = __DIR__ . '/../../../resources/images/image.png';
             
             $message = $this->localeService->get('welcome.message');
-            $this->telegramApiService->sendMessageToChatWithPhoto($chatId, $imagePath, $message, $options);
+            $this->telegramApiService->sendMessageToChatWithPhoto($user->telegramId, $imagePath, $message, $options);
 
             $this->telegramApiService->sendMessageToChat($this->localeService->get('welcome.instruction'));
             $this->telegramApiService->sendMessageToChat($this->localeService->get('info.available_servers'));
@@ -50,7 +52,7 @@ class TelegramMessageHandlerService
         }
     }
 
-    public function handleMainPanel(int $chatId): void
+    public function handleMainPanel(): void
     {
         $user = UserEntity::getInstance();
         $keyboardService = new TelegramKeyboardService($user->getModel());
@@ -60,7 +62,7 @@ class TelegramMessageHandlerService
         $this->telegramApiService->sendMessageToChat('Главная', $options);
     }
 
-    public function handleAdminPanel(int $chatId): void
+    public function handleAdminPanel(): void
     {
         $user = UserEntity::getInstance();
         $keyboardService = new TelegramKeyboardService($user->getModel());
@@ -70,9 +72,10 @@ class TelegramMessageHandlerService
         $this->telegramApiService->sendMessageToChat('Админ панель', $options);
     }
 
-    public function handleConnectVpn(int $chatId, string $serverId, string $username): void
+    public function handleConnectVpn(int $serverId): void
     {
         $userService = new UserService();
+        $user = UserEntity::getInstance();
 
         $server = $this->vpnServerService->getServerById($serverId);
 
@@ -82,26 +85,32 @@ class TelegramMessageHandlerService
             return;
         }
 
-        $configString = $userService->getUserConfig($chatId, $server, $username);
+        $configString = $userService->getUserConfig($user->telegramId, $server, $user->telegramUsername);
         if (!$configString) {
             $errorMessage = $this->localeService->get('errors.config_creation_failed');
             $this->telegramApiService->sendMessageToChat($errorMessage);
             return;
         }
+
+
+        $userService->updateUser($user->id, [
+            'expires_at' => Carbon::now()->addDays(14),
+        ]);
         $this->telegramApiService->sendMessageToChat($configString);
     }
 
-    public function handleSupport(int $chatId): void
+    public function handleSupport(): void
     {
+        $user = UserEntity::getInstance();
         $cache = new CacheService();
-        $cachekey = $chatId . ':support';
-        $cache->set($cachekey, $chatId, 1200);
+        $cachekey = $user->telegramId . ':support';
+        $cache->set($cachekey, $user->telegramId, 1200);
         
         $promptMessage = $this->localeService->get('support.prompt');
         $this->telegramApiService->sendMessageToChat($promptMessage);
     }
 
-    public function handleSubscription(int $chatId): void
+    public function handleSubscription(): void
     {
         $user = UserEntity::getInstance();
 
@@ -110,7 +119,7 @@ class TelegramMessageHandlerService
         ]));
     }
 
-    public function handleServersList(int $chatId): void
+    public function handleServersList(): void
     {
         $keyboardService = new TelegramKeyboardService();
         $options = [
@@ -120,7 +129,7 @@ class TelegramMessageHandlerService
     }
 
 
-    public function handleListSubscriptions(int $chatId): void
+    public function handleListSubscriptions(): void
     {
         $user = UserEntity::getInstance();
 
@@ -133,37 +142,41 @@ class TelegramMessageHandlerService
         ]), $options);
     }
 
-    public function handleMessageToUserStart(int $chatId): void
+    public function handleMessageToUserStart(): void
     {
+        $user = UserEntity::getInstance();
+
         $cache = new CacheService();
-        $cachekey = $chatId . ':message_to_user';
+        $cachekey = $user->telegramId . ':message_to_user';
         $cache->set($cachekey, 'start', 1200);
 
         $this->telegramApiService->sendMessageToChat('Напишите username пользователя');
     }
 
-    public function handleMessageToUserSaveUsername(int $chatId, string $username): void
+    public function handleMessageToUserSaveUsername(string $usernameForMessage): void
     {
-        $user = $this->userRepository->getByTelegramUsername($username);
+        $user = UserEntity::getInstance();
+        $userForMessage = $this->userRepository->getByTelegramUsername($usernameForMessage);
         if (!$user) {
             $this->telegramApiService->sendErrorMessage('пользователь не найден');
             return;
         }
 
         $cache = new CacheService();
-        $cachekey = $chatId . ':message_to_user';
-        $cache->set($cachekey, $user->telegram_username, 1200);
+        $cachekey = $user->telegramId . ':message_to_user';
+        $cache->set($cachekey, $userForMessage->telegram_username, 1200);
         
         $promptMessage = $this->localeService->get('support.message_to_user', [
-            '{username}' => $user->telegram_username
+            '{username}' => $userForMessage->telegram_username
         ]);
         $this->telegramApiService->sendMessageToChat($promptMessage);
     }
 
-    public function handleMessageToUserSendMessage(int $chatId, string $message): void
+    public function handleMessageToUserSendMessage(string $message): void
     {
+        $user = UserEntity::getInstance();
         $cache = new CacheService();
-        $username = $cache->get($chatId . ':message_to_user');
+        $username = $cache->get($user->telegramId . ':message_to_user');
 
         if (!$username) {
             $this->telegramApiService->sendErrorMessage('Ошибка при отправке сообщения пользователю.');
@@ -181,16 +194,17 @@ class TelegramMessageHandlerService
         $this->telegramApiService->sendMessageToChat('Сообщение доставлено.');
     }
 
-    public function handleMessageToAllStart(int $chatId): void
+    public function handleMessageToAllStart(): void
     {
+        $user = UserEntity::getInstance();
         $cache = new CacheService();
-        $cachekey = $chatId . ':message_to_all';
+        $cachekey = $user->telegramId . ':message_to_all';
         $cache->set($cachekey, 'start', 1200);
 
         $this->telegramApiService->sendMessageToChat('Напишите сообщение для всех пользователей');
     }
 
-    public function handleMessageToAllSend(int $chatId, string $message): void
+    public function handleMessageToAllSend(string $message): void
     {
         $users = $this->userRepository->getAll();
         $keyboardService = new TelegramKeyboardService();

@@ -36,7 +36,6 @@ class CallbackHandler
 
         $chatId = $callbackQuery['message']['chat']['id'] ?? null;
         $callbackData = $callbackQuery['data'] ?? null;
-        $username = $callbackQuery['from']['username'] ?? null;
 
         if (!$chatId || !$callbackData) {
             Log::warning('Missing chatId or callbackData', [
@@ -48,14 +47,14 @@ class CallbackHandler
 
         if ($this->isVpnServerCallback($callbackData)) {
 
-            $serverId = explode('_', $callbackData)[1];
-            $this->telegramMessageHandlerService->handleConnectVpn($chatId, $serverId, $username);
+            $serverId = (int) explode('_', $callbackData)[1];
+            $this->telegramMessageHandlerService->handleConnectVpn($serverId);
             return;
         }
 
         // Обработка подписок
         if ($this->subscriptionService->isSubscriptionCallback($callbackData)) {
-            $this->handleSubscriptionCallback($chatId, $callbackData, $username);
+            $this->handleSubscriptionCallback($callbackData);
             return;
         }
 
@@ -65,9 +64,9 @@ class CallbackHandler
     /**
      * Обработка callback для подписок
      */
-    private function handleSubscriptionCallback(int $chatId, string $callbackData, ?string $username): void
+    private function handleSubscriptionCallback(string $callbackData): void
     {
-        $success = $this->subscriptionService->handleSubscription($chatId, $callbackData, $username);
+        $success = $this->subscriptionService->handleSubscription($callbackData);
 
         if (!$success) {
             $this->telegramApiService->sendErrorMessage();

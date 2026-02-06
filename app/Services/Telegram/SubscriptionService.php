@@ -5,6 +5,7 @@ namespace App\Services\Telegram;
 use App\Models\User;
 use App\Models\StarInvoice;
 use Illuminate\Support\Str;
+use App\Entities\UserEntity;
 
 class SubscriptionService
 {
@@ -69,8 +70,9 @@ class SubscriptionService
     /**
      * Обработать запрос на подписку
      */
-    public function handleSubscription(int $chatId, string $callbackData, ?string $username = null): bool
+    public function handleSubscription(string $callbackData): bool
     {
+        $user = UserEntity::getInstance();
         $config = $this->getSubscriptionConfigByCallbackData($callbackData);
 
         if (!$config) {
@@ -79,8 +81,8 @@ class SubscriptionService
 
         // Находим или создаём пользователя
         $user = User::firstOrCreate(
-            ['telegram_id' => $chatId],
-            ['telegram_username' => $username]
+            ['telegram_id' => $user->telegramId],
+            ['telegram_username' => $user->telegramUsername]
         );
 
         // Генерируем уникальный payload
@@ -89,7 +91,7 @@ class SubscriptionService
         // Создаём запись в star_invoices
         StarInvoice::create([
             'user_id' => $user->id,
-            'telegram_username' => $username,
+            'telegram_username' => $user->telegramUsername,
             'amount' => $config['amount'],
             'currency' => 'XTR',
             'status' => 'created',
@@ -102,7 +104,7 @@ class SubscriptionService
 
         // Отправляем инвойс в Telegram
         $response = $this->telegramApiService->sendInvoice(
-            $chatId,
+            $user->id,
             $config['title'],
             $config['description'],
             $payload,
