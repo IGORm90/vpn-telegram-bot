@@ -43,7 +43,7 @@ class UserRepository
     /**
      * Получить пользователя по telegram_id или создать нового
      */
-    public function getOrCreate(int $telegramId, string $username): User
+    public function getOrCreate(int $telegramId, ?string $username): User
     {
         return User::firstOrCreate([
                 'telegram_id' => $telegramId,

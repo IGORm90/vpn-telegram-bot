@@ -2,7 +2,7 @@
 
 namespace App\Services\Telegram;
 
-use App\Models\User;
+use App\Entities\UserEntity;
 use App\Services\VpnServerService;
 
 
@@ -13,16 +13,16 @@ class TelegramKeyboardService
      * App\Services\Telegram\TelegramMessageHandlerService
      */
     const BUTTON_HANDLERS = [
-        '/start' => ['handleStartMessage'],
-        '/admin' => ['handleMainPanel'],
-        'Главная' => ['handleMainPanel'],
-        'Подключить vpn' => ['handleServersList'],
-        'Написать в поддержку' => ['handleSupport'],
-        'Подписка' => ['handleSubscription'],
-        'Оплата доступа' => ['handleListSubscriptions'],
-        'Админ панель' => ['handleAdminPanel'],
-        'Написать пользователю' => ['handleMessageToUserStart'],
-        'Написать всем' => ['handleMessageToAllStart'],
+        '/start' => ['handler' => 'handleStartMessage'],
+        '/admin' => ['handler' => 'handleMainPanel'],
+        'Главная' => ['handler' => 'handleMainPanel'],
+        'Подключить vpn' => ['handler' => 'handleServersList'],
+        'Написать в поддержку' => ['handler' => 'handleSupport'],
+        'Подписка' => ['handler' => 'handleSubscription'],
+        'Баланс' => ['handler' => 'handleBalance'],
+        'Админ панель' => ['handler' => 'handleAdminPanel'],
+        'Написать пользователю' => ['handler' => 'handleMessageToUserStart'],
+        'Написать всем' => ['handler' => 'handleMessageToAllStart'],
     ];
 
     const KEYBOARD = [
@@ -32,7 +32,7 @@ class TelegramKeyboardService
         ],
         [
             ['text' => 'Подписка'],
-            ['text' => 'Оплата доступа']
+            ['text' => 'Баланс']
         ]
     ];
 
@@ -56,14 +56,15 @@ class TelegramKeyboardService
     private SubscriptionService $subscriptionService;
     private VpnServerService $vpnServerService;
 
-    public function __construct(?User $user = null)
+    public function __construct()
     {
         $this->subscriptionService = new SubscriptionService();
         $this->vpnServerService = new VpnServerService();
 
+        $user = UserEntity::getInstance();
         if ($user) {
             $adminChatId = intval(env('ADMIN_CHAT_ID'));
-            $this->isAdmin = intval($user->telegram_id) === $adminChatId;
+            $this->isAdmin = intval($user->telegramId) === $adminChatId;
         }
     }
 
@@ -133,6 +134,42 @@ class TelegramKeyboardService
                 [
                     'text' => $text,
                     'callback_data' => 'server_' . $server->id,
+                ]
+            ];
+
+            $inlineKeyboard[] = $row;
+        }
+
+        return [
+            'inline_keyboard' => $inlineKeyboard,
+        ];
+    }
+
+    /**
+     * Получить inline-клавиатуру для активации подписки
+     *
+     * @param int $userBalance Текущий баланс пользователя
+     * @return array
+     */
+    public function getActivationKeyboard(int $userBalance): array
+    {
+        $inlineKeyboard = [];
+        $activationConfig = $this->subscriptionService->getActivationConfig();
+
+        foreach ($activationConfig as $callbackData => $config) {
+            $isAvailable = $userBalance >= $config['balance_cost'];
+            $text = $config['title'];
+            
+            if ($isAvailable) {
+                $text = '✅ ' . $text;
+            } else {
+                $text = '🔒 ' . $text;
+            }
+
+            $row = [
+                [
+                    'text' => $text,
+                    'callback_data' => $callbackData,
                 ]
             ];
 

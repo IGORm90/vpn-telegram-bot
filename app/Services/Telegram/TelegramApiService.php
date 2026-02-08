@@ -5,6 +5,7 @@ namespace App\Services\Telegram;
 use App\Entities\UserEntity;
 use App\Services\HttpService;
 use Illuminate\Support\Facades\Log;
+use App\Services\Telegram\TelegramKeyboardService;
 
 /**
  * Telegram Service для взаимодействия с Telegram Bot API
@@ -17,6 +18,7 @@ class TelegramApiService
     private HttpService $httpService;
     private string $botToken;
     private string $baseUrl;
+    private ?TelegramKeyboardService $keyboardService = null;
 
     /**
      * @param string $botToken
@@ -30,6 +32,17 @@ class TelegramApiService
             'timeout' => 30,
             'connect_timeout' => 10,
         ]);
+    }
+
+    /**
+     * Ленивая инициализация KeyboardService для избежания циклической зависимости
+     */
+    private function getKeyboardService(): TelegramKeyboardService
+    {
+        if ($this->keyboardService === null) {
+            $this->keyboardService = new TelegramKeyboardService();
+        }
+        return $this->keyboardService;
     }
 
     /**
@@ -47,6 +60,10 @@ class TelegramApiService
             return null;
         }
 
+        if (!isset($options['reply_markup'])) {
+            $options['reply_markup'] = $this->getKeyboardService()->getKeyboard();
+        }
+        
         $data = array_merge([
             'chat_id' => $chatId,
             'text' => $text,

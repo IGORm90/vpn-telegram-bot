@@ -27,39 +27,30 @@ class TelegramMessageHandlerService
     public function handleStartMessage(): void
     {
         $user = UserEntity::getInstance();
-        if (!$user->expiresAt !== null) {
+        if ($user->expiresAt === null) {
             $isNewUser = true;
+            $this->userRepository->updateExpiration($user->getModel(), Carbon::now()->addDays(14));
         } else {
             $isNewUser = false;
         }
-
-        $keyboardService = new TelegramKeyboardService($user->getModel());
-        $options = [
-            'reply_markup' => $keyboardService->getKeyboard(),
-        ];
         
         if ($isNewUser) {
             $imagePath = __DIR__ . '/../../../resources/images/image.png';
             
             $message = $this->localeService->get('welcome.message');
-            $this->telegramApiService->sendMessageToChatWithPhoto($user->telegramId, $imagePath, $message, $options);
+            $this->telegramApiService->sendMessageToChatWithPhoto($user->telegramId, $imagePath, $message);
 
             $this->telegramApiService->sendMessageToChat($this->localeService->get('welcome.instruction'));
             $this->telegramApiService->sendMessageToChat($this->localeService->get('info.available_servers'));
         } else {
-            $this->telegramApiService->sendMessageToChat($this->localeService->get('support.start'), $options);
+            $this->telegramApiService->sendMessageToChat($this->localeService->get('support.start'));
             $this->telegramApiService->sendMessageToChat($this->localeService->get('info.available_servers'));
         }
     }
 
     public function handleMainPanel(): void
     {
-        $user = UserEntity::getInstance();
-        $keyboardService = new TelegramKeyboardService($user->getModel());
-        $options = [
-            'reply_markup' => $keyboardService->getKeyboard(),
-        ];
-        $this->telegramApiService->sendMessageToChat('Главная', $options);
+        $this->telegramApiService->sendMessageToChat('Главная');
     }
 
     public function handleAdminPanel(): void
@@ -114,9 +105,19 @@ class TelegramMessageHandlerService
     {
         $user = UserEntity::getInstance();
 
-        $this->telegramApiService->sendMessageToChat($this->localeService->get('subscription.expires_at', [
-            '{expires_at}' => $user->expiresAt->format('d.m.Y')
-        ]));
+        $expiresAtFormatted = $user->expiresAt
+            ? $user->expiresAt->format('d.m.Y')
+            : 'не активна';
+
+        $keyboardService = new TelegramKeyboardService();
+        $options = [
+            'reply_markup' => $keyboardService->getActivationKeyboard($user->balance),
+        ];
+
+        $this->telegramApiService->sendMessageToChat($this->localeService->get('subscription.subscription_message', [
+            '{expires_at}' => $expiresAtFormatted,
+            '{balance}' => $user->balance,
+        ]), $options);
     }
 
     public function handleServersList(): void
@@ -129,7 +130,7 @@ class TelegramMessageHandlerService
     }
 
 
-    public function handleListSubscriptions(): void
+    public function handleBalance(): void
     {
         $user = UserEntity::getInstance();
 
@@ -137,8 +138,9 @@ class TelegramMessageHandlerService
         $options = [
             'reply_markup' => $keyboardService->getSubscriptionsKeyboard(),
         ];
-        $this->telegramApiService->sendMessageToChat($this->localeService->get('subscription.subscription_message', [
-            '{expires_at}' => $user->expiresAt->format('d.m.Y')
+        $balance = $user->balance;
+        $this->telegramApiService->sendMessageToChat($this->localeService->get('subscription.balance_message', [
+            '{balance}' => $balance
         ]), $options);
     }
 
@@ -207,12 +209,9 @@ class TelegramMessageHandlerService
     public function handleMessageToAllSend(string $message): void
     {
         $users = $this->userRepository->getAll();
-        $keyboardService = new TelegramKeyboardService();
-        $options = [
-            'reply_markup' => $keyboardService->getKeyboard(),
-        ];
+
         foreach ($users as $user) {
-            $this->telegramApiService->sendMessageToChat($message, $options, $user->telegram_id);
+            $this->telegramApiService->sendMessageToChat($message, [], $user->telegram_id);
         }
         $this->telegramApiService->sendMessageToChat('Сообщение доставлено всем пользователям.');
     }

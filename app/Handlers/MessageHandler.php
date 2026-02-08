@@ -59,7 +59,7 @@ class MessageHandler
 
         $buttonHandler = TelegramKeyboardService::BUTTON_HANDLERS[$text] ?? null;
         if ($buttonHandler) {
-            $handler = $buttonHandler[0];
+            $handler = $buttonHandler['handler'];
             $this->telegramMessageHandlerService->$handler($chatId);
             return;
         }

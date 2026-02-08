@@ -4,7 +4,6 @@ namespace App\Handlers;
 
 use App\Exceptions\PaymentException;
 use App\Models\StarInvoice;
-use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -104,23 +103,19 @@ class PreCheckoutHandler
             ]);
 
             $user = $invoice->user;
-            $currentExpiresAt = $user->expires_at;
-            $months = $invoice->metadata['months'] ?? 1;
-
-            $baseDate = ($currentExpiresAt && $currentExpiresAt->isFuture())
-                ? $currentExpiresAt->copy()
-                : Carbon::now();
+            $oldBalance = $user->balance ?? 0;
+            $balanceAmount = $invoice->metadata['balance_amount'] ?? 0;
 
             $user->update([
-                'expires_at' => $baseDate->addMonths($months),
+                'balance' => $oldBalance + $balanceAmount,
             ]);
 
-            Log::info('Invoice confirmed and subscription extended', [
+            Log::info('Invoice confirmed and balance increased', [
                 'invoice_id' => $invoice->id,
                 'user_id' => $user->id,
-                'months' => $months,
-                'old_expires_at' => $currentExpiresAt?->toDateTimeString(),
-                'new_expires_at' => $user->expires_at->toDateTimeString(),
+                'balance_amount' => $balanceAmount,
+                'old_balance' => $oldBalance,
+                'new_balance' => $oldBalance + $balanceAmount,
             ]);
         });
     }

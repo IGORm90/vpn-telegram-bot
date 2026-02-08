@@ -22,6 +22,7 @@ class User extends Model
         'is_active',
         'expires_at',
         'settings',
+        'balance',
     ];
 
     /**

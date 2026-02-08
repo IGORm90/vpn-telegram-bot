@@ -95,29 +95,6 @@ class MainController extends Controller
         Log::warning('Unknown update type', ['data' => $data]);
     }
 
-    /**
-     * Извлечение chat_id из различных типов update
-     */
-    private function extractChatId(array $data): ?int
-    {
-        // Из обычного сообщения или successful_payment
-        if (isset($data['message']['chat']['id'])) {
-            return (int) $data['message']['chat']['id'];
-        }
-
-        // Из callback_query
-        if (isset($data['callback_query']['message']['chat']['id'])) {
-            return (int) $data['callback_query']['message']['chat']['id'];
-        }
-
-        // Из pre_checkout_query (chat_id нет, но есть user_id)
-        if (isset($data['pre_checkout_query']['from']['id'])) {
-            return (int) $data['pre_checkout_query']['from']['id'];
-        }
-
-        return null;
-    }
-
     private function createUserEntity(array $data): void
     {
         $telegramId = null;

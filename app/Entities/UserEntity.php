@@ -40,7 +40,7 @@ class UserEntity
     /**
      * Инициализация синглтона
      */
-    public static function init(int $telegramId, string $telegramUsername): self
+    public static function init(int $telegramId, ?string $telegramUsername): self
     {
         if (self::$instance === null) {
             $repository = app(UserRepository::class);
