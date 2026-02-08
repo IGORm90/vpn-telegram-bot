@@ -23,9 +23,9 @@ class VpnApiService
         
         try {
             $response = $this->httpService->post($server->vpn_url . '/api/users', [
+                'id' => $user->id,
                 'username' => $user->telegram_username,
                 'is_active' => $user->is_active,
-                'expires_at' => $user->expires_at->toIso8601ZuluString(),
             ], [
                 'Authorization' => 'Bearer ' . $server->bearer_token,
             ]);
@@ -54,7 +54,7 @@ class VpnApiService
         
         try {
             $response = $this->httpService->get(
-                $server->vpn_url . "/api/users/$user->vpn_id/config",
+                $server->vpn_url . "/api/users/$user->id/config",
                 [],
                 [
                     'Authorization' => 'Bearer ' . $server->bearer_token,
