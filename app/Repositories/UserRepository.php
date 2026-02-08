@@ -3,6 +3,7 @@
 namespace App\Repositories;
 
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
@@ -52,7 +53,67 @@ class UserRepository
                 'is_active' => true,
                 'balance' => 0,
                 'settings' => [],
+                'referral_hash' => $this->generateReferralHash(),
             ]);
+    }
+
+    /**
+     * Генерация уникального реферального хэша
+     */
+    public function generateReferralHash(): string
+    {
+        do {
+            $hash = bin2hex(random_bytes(8)); // 16 символов
+        } while (User::where('referral_hash', $hash)->exists());
+
+        return $hash;
+    }
+
+    /**
+     * Найти пользователя по реферальному хэшу
+     */
+    public function findByReferralHash(string $hash): ?User
+    {
+        return User::where('referral_hash', $hash)->first();
+    }
+
+    /**
+     * Установить реферальный хэш для пользователя, если его нет
+     */
+    public function ensureReferralHash(User $user): string
+    {
+        if (!$user->referral_hash) {
+            $hash = $this->generateReferralHash();
+            $user->update(['referral_hash' => $hash]);
+            return $hash;
+        }
+
+        return $user->referral_hash;
+    }
+
+    /**
+     * Установить referred_by_hash для пользователя
+     */
+    public function setReferredByHash(User $user, string $referrerHash): bool
+    {
+        return $user->update(['referred_by_hash' => $referrerHash]);
+    }
+
+    /**
+     * Добавить неделю к подписке пользователя
+     */
+    public function addWeekToSubscription(User $user): bool
+    {
+        $currentExpiration = $user->expires_at ?? Carbon::now();
+        
+        // Если подписка уже истекла, начинаем от текущей даты
+        if ($currentExpiration < Carbon::now()) {
+            $currentExpiration = Carbon::now();
+        }
+
+        return $user->update([
+            'expires_at' => $currentExpiration->copy()->addWeek()
+        ]);
     }
 
     /**

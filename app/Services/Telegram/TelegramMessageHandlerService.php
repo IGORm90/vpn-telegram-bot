@@ -215,4 +215,74 @@ class TelegramMessageHandlerService
         }
         $this->telegramApiService->sendMessageToChat('Сообщение доставлено всем пользователям.');
     }
+
+    public function handleInviteFriend(): void
+    {
+        $user = UserEntity::getInstance();
+        
+        // Убедимся, что у пользователя есть реферальный хэш
+        $referralHash = $this->userRepository->ensureReferralHash($user->getModel());
+        
+        $botUsername = env('TELEGRAM_BOT_USERNAME');
+        $referralLink = "https://t.me/{$botUsername}?start={$referralHash}";
+        
+        $message = $this->localeService->get('referral.invite_message', [
+            '{link}' => $referralLink
+        ]);
+        
+        $this->telegramApiService->sendMessageToChat($message);
+    }
+
+    public function handleStartMessageWithReferral(?string $referralHash): void
+    {
+        $user = UserEntity::getInstance();
+        $isNewUser = $user->expiresAt === null;
+        
+        if ($isNewUser) {
+            // Базовый срок подписки - 2 недели
+            $expirationDays = 14;
+            $referralBonusApplied = false;
+            
+            // Обработка реферальной ссылки
+            if ($referralHash && $referralHash !== $user->referralHash) {
+                $referrer = $this->userRepository->findByReferralHash($referralHash);
+                
+                if ($referrer && $referrer->id !== $user->id) {
+                    // Сохраняем информацию о реферере
+                    $this->userRepository->setReferredByHash($user->getModel(), $referralHash);
+                    
+                    // Добавляем бонусную неделю новому пользователю
+                    $expirationDays += 7;
+                    $referralBonusApplied = true;
+                    
+                    // Добавляем неделю подписки рефереру
+                    $this->userRepository->addWeekToSubscription($referrer);
+                    
+                    // Отправляем уведомление рефереру
+                    $referrerMessage = $this->localeService->get('referral.referrer_bonus');
+                    $this->telegramApiService->sendMessageToChat($referrerMessage, [], $referrer->telegram_id);
+                }
+            }
+            
+            // Устанавливаем срок подписки
+            $this->userRepository->updateExpiration($user->getModel(), Carbon::now()->addDays($expirationDays));
+            
+            // Отправляем приветственное сообщение
+            $imagePath = __DIR__ . '/../../../resources/images/image.png';
+            $message = $this->localeService->get('welcome.message');
+            $this->telegramApiService->sendMessageToChatWithPhoto($user->telegramId, $imagePath, $message);
+            
+            // Если пришел по реферальной ссылке - сообщаем о бонусе
+            if ($referralBonusApplied) {
+                $bonusMessage = $this->localeService->get('referral.new_user_bonus');
+                $this->telegramApiService->sendMessageToChat($bonusMessage);
+            }
+            
+            $this->telegramApiService->sendMessageToChat($this->localeService->get('welcome.instruction'));
+            $this->telegramApiService->sendMessageToChat($this->localeService->get('info.available_servers'));
+        } else {
+            $this->telegramApiService->sendMessageToChat($this->localeService->get('support.start'));
+            $this->telegramApiService->sendMessageToChat($this->localeService->get('info.available_servers'));
+        }
+    }
 }

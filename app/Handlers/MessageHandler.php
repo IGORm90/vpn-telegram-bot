@@ -57,6 +57,15 @@ class MessageHandler
             return;
         }
 
+        // Обработка команды /start с реферальным параметром
+        if (str_starts_with($text, '/start')) {
+            $parts = explode(' ', $text, 2);
+            $referralHash = $parts[1] ?? null;
+            
+            $this->telegramMessageHandlerService->handleStartMessageWithReferral($referralHash);
+            return;
+        }
+
         $buttonHandler = TelegramKeyboardService::BUTTON_HANDLERS[$text] ?? null;
         if ($buttonHandler) {
             $handler = $buttonHandler['handler'];

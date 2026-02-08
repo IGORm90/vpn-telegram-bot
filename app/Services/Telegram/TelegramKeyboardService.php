@@ -20,6 +20,7 @@ class TelegramKeyboardService
         'Написать в поддержку' => ['handler' => 'handleSupport'],
         'Подписка' => ['handler' => 'handleSubscription'],
         'Баланс' => ['handler' => 'handleBalance'],
+        'Пригласить друга' => ['handler' => 'handleInviteFriend'],
         'Админ панель' => ['handler' => 'handleAdminPanel'],
         'Написать пользователю' => ['handler' => 'handleMessageToUserStart'],
         'Написать всем' => ['handler' => 'handleMessageToAllStart'],
@@ -33,6 +34,9 @@ class TelegramKeyboardService
         [
             ['text' => 'Подписка'],
             ['text' => 'Баланс']
+        ],
+        [
+            ['text' => 'Пригласить друга']
         ]
     ];
 
@@ -61,8 +65,8 @@ class TelegramKeyboardService
         $this->subscriptionService = new SubscriptionService();
         $this->vpnServerService = new VpnServerService();
 
-        $user = UserEntity::getInstance();
-        if ($user) {
+        if (UserEntity::isInitialized()) {
+            $user = UserEntity::getInstance();
             $adminChatId = intval(env('ADMIN_CHAT_ID'));
             $this->isAdmin = intval($user->telegramId) === $adminChatId;
         }

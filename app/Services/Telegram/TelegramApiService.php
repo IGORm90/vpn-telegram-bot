@@ -278,6 +278,37 @@ class TelegramApiService
     }
 
     /**
+     * Ответ на CallbackQuery
+     *
+     * @param string $callbackQueryId
+     * @param string|null $text Текст уведомления (опционально)
+     * @param bool $showAlert Показать alert вместо toast (опционально)
+     * @return array|null
+     */
+    public function answerCallbackQuery(string $callbackQueryId, ?string $text = null, bool $showAlert = false): ?array
+    {
+        $data = [
+            'callback_query_id' => $callbackQueryId,
+        ];
+
+        if ($text !== null) {
+            $data['text'] = $text;
+            $data['show_alert'] = $showAlert;
+        }
+
+        $response = $this->httpService->post($this->baseUrl . 'answerCallbackQuery', $data);
+
+        if (!($response && $response['success'])) {
+            Log::error('Failed to answer CallbackQuery', [
+                'query_id' => $callbackQueryId,
+                'error' => $response['message'] ?? self::UNKNOWN_ERROR,
+            ]);
+        }
+
+        return $response;
+    }
+
+    /**
      * Получить базовый URL API
      *
      * @return string

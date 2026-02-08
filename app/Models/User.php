@@ -23,6 +23,8 @@ class User extends Model
         'expires_at',
         'settings',
         'balance',
+        'referral_hash',
+        'referred_by_hash',
     ];
 
     /**
@@ -37,6 +39,8 @@ class User extends Model
         'expires_at' => 'datetime',
         'settings' => 'array',
         'balance' => 'integer',
+        'referral_hash' => 'string',
+        'referred_by_hash' => 'string',
     ];
 
     /**

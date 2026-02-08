@@ -25,6 +25,8 @@ class UserEntity
     public readonly ?Carbon $expiresAt;
     public readonly int $balance;
     public readonly array $settings;
+    public readonly ?string $referralHash;
+    public readonly ?string $referredByHash;
     public readonly ?Carbon $createdAt;
     public readonly ?Carbon $updatedAt;
 
@@ -65,9 +67,9 @@ class UserEntity
         return self::$instance;
     }
 
-    public static function getUserTelegramId(): int
+    public static function getUserTelegramId(): ?int
     {
-        return self::$instance->telegramId;
+        return self::$instance?->telegramId;
     }
 
     /**
@@ -118,6 +120,8 @@ class UserEntity
         $this->expiresAt = $this->model->expires_at;
         $this->balance = $this->model->balance ?? 0;
         $this->settings = $this->model->settings ?? [];
+        $this->referralHash = $this->model->referral_hash;
+        $this->referredByHash = $this->model->referred_by_hash;
         $this->createdAt = $this->model->created_at;
         $this->updatedAt = $this->model->updated_at;
     }

@@ -28,8 +28,6 @@ class CallbackHandler
     {
         $update = $request->all();
 
-        Log::info('CallbackHandler update', ['update' => $update]);
-
         $callbackQuery = $update['callback_query'] ?? null;
 
         if (!$callbackQuery) {
@@ -37,8 +35,14 @@ class CallbackHandler
             return;
         }
 
+        $callbackQueryId = $callbackQuery['id'] ?? null;
         $chatId = $callbackQuery['message']['chat']['id'] ?? null;
         $callbackData = $callbackQuery['data'] ?? null;
+
+        // Отвечаем на callback query, чтобы убрать "часики" на кнопке
+        if ($callbackQueryId) {
+            $this->telegramApiService->answerCallbackQuery($callbackQueryId);
+        }
 
         if (!$chatId || !$callbackData) {
             Log::warning('Missing chatId or callbackData', [
