@@ -83,10 +83,6 @@ class TelegramMessageHandlerService
             return;
         }
 
-
-        $userService->updateUser($user->id, [
-            'expires_at' => Carbon::now()->addDays(14),
-        ]);
         $this->telegramApiService->sendMessageToChat($configString);
     }
 

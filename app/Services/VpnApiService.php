@@ -89,7 +89,6 @@ class VpnApiService
                 $this->baseUrl . "/api/users/$user->vpn_id",
                 [
                     'is_active' => $user->is_active,
-                    'expires_at' => $user->expires_at->toIso8601ZuluString(),
                 ],
                 [
                     'Authorization' => 'Bearer ' . env('VPN_API_TOKEN'),
