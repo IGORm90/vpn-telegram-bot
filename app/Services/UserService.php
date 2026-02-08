@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use Carbon\Carbon;
 use App\Models\VpnServer;
 use Illuminate\Support\Facades\Log;
 use App\Repositories\UserRepository;
@@ -55,16 +54,7 @@ class UserService
 
                     return null;
                 }
-
-                $this->userRepository->update($user, [
-                    'vpn_id' => $vpnUser['id'],
-                ]);
             }
-
-            // Сохраняем конфигурацию в БД
-            $this->userRepository->update($user, [
-                'settings' => $config,
-            ]);
 
             return $config['uri'];
         } catch (\Exception $e) {

@@ -21,25 +21,25 @@ class SubscriptionService
      */
     private const SUBSCRIPTION_CONFIG = [
         'subscribe_1_month' => [
-            'amount' => 1,
+            'amount' => 100,
             'balance_amount' => 182,
             'title' => 'Пополнение на 182 ₽',
             'description' => 'Пополнение баланса на 182 ₽',
         ],
         'subscribe_3_months' => [
-            'amount' => 1,
+            'amount' => 250,
             'balance_amount' => 429,
             'title' => 'Пополнение на 429 ₽',
             'description' => 'Пополнение баланса на 429 ₽',
         ],
         'subscribe_6_months' => [
-            'amount' => 1,
+            'amount' => 500,
             'balance_amount' => 849,
             'title' => 'Пополнение на 849 ₽',
             'description' => 'Пополнение баланса на 849 ₽',
         ],
         'subscribe_1_year' => [
-            'amount' => 1,
+            'amount' => 1000,
             'balance_amount' => 1679,
             'title' => 'Пополнение на 1679 ₽',
             'description' => 'Пополнение баланса на 1679 ₽',
