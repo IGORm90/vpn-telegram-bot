@@ -102,15 +102,15 @@ class MainController extends Controller
         Log::info('createUserEntity data', ['data' => $data]);
 
         // Из обычного сообщения
-        if (isset($data['message']['from']['id']) && isset($data['message']['from']['username'])) {
+        if (isset($data['message']['from']['id'])) {
             $telegramId = (int) $data['message']['chat']['id'];
-            $telegramUsername = $data['message']['from']['username'] ;
+            $telegramUsername = $data['message']['from']['username'] ?? null;
         }
 
         // Из callback_query
-        if (isset($data['callback_query']['from']['id']) && isset($data['callback_query']['from']['username'])) {
+        if (isset($data['callback_query']['from']['id'])) {
             $telegramId = (int) $data['callback_query']['message']['chat']['id'];
-            $telegramUsername = $data['callback_query']['from']['username'];
+            $telegramUsername = $data['callback_query']['from']['username'] ?? null;
         }
 
         // Из pre_checkout_query (chat_id нет, но есть user_id)
@@ -122,7 +122,11 @@ class MainController extends Controller
         if (isset($data['message']['chat']['id'])) {
             $telegramId = (int) $data['message']['chat']['id'];
         }
-    
+
+        if($telegramUsername === null) {
+            $telegramUsername = 'user_' . $telegramId;
+        }
+
         if ($telegramId) {
             UserEntity::init($telegramId, $telegramUsername);
         }
