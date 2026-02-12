@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\VpnServer;
 use Illuminate\Support\Facades\Log;
 use App\Repositories\UserRepository;
+use App\Models\User;
 
 class UserService
 {
@@ -74,7 +75,7 @@ class UserService
      * @param array $data
      * @return \App\Models\User|null
      */
-    public function updateUser(int $id, array $data): ?\App\Models\User
+    public function updateUser(int $id, array $data): ?User
     {
         $user = $this->userRepository->findById($id);
 
@@ -84,7 +85,9 @@ class UserService
 
         $this->userRepository->update($user, $data);
         
-        $this->vpnApiService->setUserActive($user);
+        if (isset($data['is_active']) && $data['is_active'] !== $user->is_active) {
+            $this->vpnApiService->setUserActive($user, $data['is_active']);
+        }
 
         return $user->fresh();
     }

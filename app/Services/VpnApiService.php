@@ -80,37 +80,62 @@ class VpnApiService
         return null;
     }
 
-    public function setUserActive(User $user): bool
+    public function setUserActive(User $user, bool|null $isActive): bool
     {
-        $response = null;
+        if ($isActive === null) {
+            $isActive = $user->is_active;
+        }
 
-        try {
-            $response = $this->httpService->patch(
-                $this->baseUrl . "/api/users/$user->telegram_id",
-                [
-                    'is_active' => $user->is_active,
-                ],
-                [
-                    'Authorization' => 'Bearer ' . env('VPN_API_TOKEN'),
-                ]
-            );
+        $servers = VpnServer::all();
 
-            if ($response && $response['success'] && isset($response['data']['is_active'])) {
-                return $response['data']['is_active'];
-            }
-            
-            Log::warning('VPN API returned unexpected set active response', [
-                'response' => $response,
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Failed to set user active status', [
-                'message' => $e->getMessage(),
-                'response' => $response,
-            ]);
-
+        if ($servers->isEmpty()) {
+            Log::warning('No VPN servers found in database');
             return false;
         }
 
-        return true;
+        $allSuccessful = true;
+
+        foreach ($servers as $server) {
+            $response = null;
+
+            try {
+                $response = $this->httpService->patch(
+                    $server->vpn_url . "/api/users/$user->telegram_id",
+                    [
+                        'is_active' => $isActive,
+                    ],
+                    [
+                        'Authorization' => 'Bearer ' . $server->bearer_token,
+                    ]
+                );
+
+                if ($response && $response['success'] && isset($response['data']['is_active'])) {
+                    continue;
+                }
+
+                if ($response && !$response['success'] && $response['status'] === 404) {
+                    continue;
+                }
+
+                Log::warning('VPN API returned unexpected set active response', [
+                    'server_id' => $server->id,
+                    'vpn_url' => $server->vpn_url,
+                    'response' => $response,
+                ]);
+
+                $allSuccessful = false;
+            } catch (\Exception $e) {
+                Log::error('Failed to set user active status', [
+                    'server_id' => $server->id,
+                    'vpn_url' => $server->vpn_url,
+                    'message' => $e->getMessage(),
+                    'response' => $response,
+                ]);
+
+                $allSuccessful = false;
+            }
+        }
+
+        return $allSuccessful;
     }
 }

@@ -48,9 +48,10 @@ class UserController extends Controller
         $this->validate($request, [
             'is_active' => 'sometimes|boolean',
             'expires_at' => 'sometimes|nullable|date',
+            'balance' => 'sometimes|numeric|min:0',
         ]);
 
-        $data = $request->only(['is_active', 'expires_at']);
+        $data = $request->only(['is_active', 'expires_at', 'balance']);
         $user = $this->userService->updateUser($id, $data);
 
         if (!$user) {
