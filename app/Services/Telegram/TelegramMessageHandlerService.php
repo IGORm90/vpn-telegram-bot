@@ -4,6 +4,8 @@ namespace App\Services\Telegram;
 
 use Carbon\Carbon;
 use App\Entities\UserEntity;
+use App\Models\User;
+use App\Jobs\SendBroadcastMessage;
 use App\Services\UserService;
 use App\Services\CacheService;
 use App\Services\LocaleService;
@@ -204,12 +206,17 @@ class TelegramMessageHandlerService
 
     public function handleMessageToAllSend(string $message): void
     {
-        $users = $this->userRepository->getAll();
+        $count = User::count();
 
-        foreach ($users as $user) {
-            $this->telegramApiService->sendMessageToChat($message, [], $user->telegram_id);
-        }
-        $this->telegramApiService->sendMessageToChat('Сообщение доставлено всем пользователям.');
+        User::select('telegram_id')->chunk(200, function ($users) use ($message) {
+            foreach ($users as $user) {
+                dispatch(new SendBroadcastMessage($message, $user->telegram_id));
+            }
+        });
+
+        $this->telegramApiService->sendMessageToChat(
+            "Рассылка поставлена в очередь для {$count} пользователей."
+        );
     }
 
     public function handleInviteFriend(): void

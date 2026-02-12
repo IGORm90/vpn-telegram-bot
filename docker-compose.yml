@@ -27,6 +27,7 @@ services:
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD:-}
       - REDIS_CLIENT=phpredis
+      - QUEUE_CONNECTION=database
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - VPN_API_BASE_URL=${VPN_API_BASE_URL}
       - VPN_API_TOKEN=${VPN_API_TOKEN}
@@ -110,6 +111,96 @@ services:
         reservations:
           cpus: '0.1'
           memory: 64M
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: vpn-bot-scheduler
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - .:/var/www
+      - /var/www/vendor
+    networks:
+      - vpn-bot-network
+    depends_on:
+      - db
+      - redis
+    environment:
+      - APP_ENV=${APP_ENV:-production}
+      - APP_DEBUG=${APP_DEBUG:-false}
+      - APP_KEY=${APP_KEY}
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_DATABASE=${DB_DATABASE:-vpn_bot}
+      - DB_USERNAME=${DB_USERNAME:-vpn_user}
+      - DB_PASSWORD=${DB_PASSWORD:-secret}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - REDIS_CLIENT=phpredis
+      - QUEUE_CONNECTION=database
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - VPN_API_BASE_URL=${VPN_API_BASE_URL}
+      - VPN_API_TOKEN=${VPN_API_TOKEN}
+      - ADMIN_CHAT_ID=${ADMIN_CHAT_ID}
+      - LOG_CHANNEL=${LOG_CHANNEL:-stack}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    command: ["/bin/sh", "/var/www/docker/scheduler/entrypoint.sh"]
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: vpn-bot-worker
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - .:/var/www
+      - /var/www/vendor
+    networks:
+      - vpn-bot-network
+    depends_on:
+      - db
+      - redis
+    environment:
+      - APP_ENV=${APP_ENV:-production}
+      - APP_DEBUG=${APP_DEBUG:-false}
+      - APP_KEY=${APP_KEY}
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_DATABASE=${DB_DATABASE:-vpn_bot}
+      - DB_USERNAME=${DB_USERNAME:-vpn_user}
+      - DB_PASSWORD=${DB_PASSWORD:-secret}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - REDIS_CLIENT=phpredis
+      - QUEUE_CONNECTION=database
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - VPN_API_BASE_URL=${VPN_API_BASE_URL}
+      - VPN_API_TOKEN=${VPN_API_TOKEN}
+      - ADMIN_CHAT_ID=${ADMIN_CHAT_ID}
+      - LOG_CHANNEL=${LOG_CHANNEL:-stack}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    command: ["php", "artisan", "queue:work", "database", "--sleep=3", "--tries=3", "--max-time=3600"]
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
 
   # Logging stack
   loki:
