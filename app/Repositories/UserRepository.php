@@ -152,6 +152,17 @@ class UserRepository
     }
 
     /**
+     * Получить пользователей с истекшей подпиской, которые ещё активны
+     */
+    public function getExpiredActiveUsers(): Collection
+    {
+        return User::where('is_active', true)
+            ->whereNotNull('expires_at')
+            ->where('expires_at', '<', Carbon::now())
+            ->get();
+    }
+
+    /**
      * Активировать пользователя
      */
     public function activate(User $user): bool

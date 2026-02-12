@@ -4,9 +4,11 @@ namespace App\Services\Telegram;
 
 use App\Models\User;
 use App\Models\StarInvoice;
+use App\Jobs\ActivateVpnJob;
 use Illuminate\Support\Str;
 use App\Entities\UserEntity;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class SubscriptionService
@@ -252,10 +254,15 @@ class SubscriptionService
 
         $newExpiresAt = $baseDate->addMonths($months);
 
-        $user->update([
-            'balance' => $oldBalance - $balanceCost,
-            'expires_at' => $newExpiresAt,
-        ]);
+        DB::transaction(function () use ($user, $oldBalance, $balanceCost, $newExpiresAt) {
+            $user->update([
+                'balance' => $oldBalance - $balanceCost,
+                'expires_at' => $newExpiresAt,
+                'is_active' => true,
+            ]);
+
+            dispatch(new ActivateVpnJob($user->id));
+        });
 
         Log::info('Subscription activated', [
             'user_id' => $user->id,
