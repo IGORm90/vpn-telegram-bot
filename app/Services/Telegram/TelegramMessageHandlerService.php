@@ -31,7 +31,7 @@ class TelegramMessageHandlerService
         $user = UserEntity::getInstance();
         if ($user->expiresAt === null) {
             $isNewUser = true;
-            $this->userRepository->updateExpiration($user->getModel(), Carbon::now()->addDays(14));
+            $this->userRepository->updateExpiration($user->getModel(), Carbon::now()->addDays(7));
         } else {
             $isNewUser = false;
         }
@@ -43,10 +43,10 @@ class TelegramMessageHandlerService
             $this->telegramApiService->sendMessageToChatWithPhoto($user->telegramId, $imagePath, $message);
 
             $this->telegramApiService->sendMessageToChat($this->localeService->get('welcome.instruction'));
-            $this->telegramApiService->sendMessageToChat($this->localeService->get('info.available_servers'));
+            $this->telegramApiService->sendMessageToChat($this->getAvailableServersMessage());
         } else {
             $this->telegramApiService->sendMessageToChat($this->localeService->get('support.start'));
-            $this->telegramApiService->sendMessageToChat($this->localeService->get('info.available_servers'));
+            $this->telegramApiService->sendMessageToChat($this->getAvailableServersMessage());
         }
     }
 
@@ -112,9 +112,22 @@ class TelegramMessageHandlerService
             'reply_markup' => $keyboardService->getActivationKeyboard($user->balance),
         ];
 
+        $servers = $this->vpnServerService->getAllServers();
+
+        $serversList = $servers
+            ->map(fn ($server) => $server->flag_emoji . ' ' . $server->title)
+            ->implode("\n");
+
+        $protocols = $servers
+            ->pluck('protocol')
+            ->unique()
+            ->implode(', ');
+
         $this->telegramApiService->sendMessageToChat($this->localeService->get('subscription.subscription_message', [
             '{expires_at}' => $expiresAtFormatted,
             '{balance}' => $user->balance,
+            '{servers_list}' => $serversList,
+            '{protocols}' => $protocols,
         ]), $options);
     }
 
@@ -282,10 +295,36 @@ class TelegramMessageHandlerService
             }
             
             $this->telegramApiService->sendMessageToChat($this->localeService->get('welcome.instruction'));
-            $this->telegramApiService->sendMessageToChat($this->localeService->get('info.available_servers'));
+            $this->telegramApiService->sendMessageToChat($this->getAvailableServersMessage());
         } else {
             $this->telegramApiService->sendMessageToChat($this->localeService->get('support.start'));
-            $this->telegramApiService->sendMessageToChat($this->localeService->get('info.available_servers'));
+            $this->telegramApiService->sendMessageToChat($this->getAvailableServersMessage());
         }
+    }
+
+    /**
+     * Сформировать сообщение со списком доступных серверов из БД
+     */
+    private function getAvailableServersMessage(): string
+    {
+        $servers = $this->vpnServerService->getAllServers();
+
+        if ($servers->isEmpty()) {
+            return 'На данный момент нет доступных серверов.';
+        }
+
+        $serversList = $servers
+            ->map(fn ($server) => $server->title . $server->flag_emoji)
+            ->implode("\n");
+
+        $protocols = $servers
+            ->pluck('protocol')
+            ->unique()
+            ->implode(', ');
+
+        return $this->localeService->get('info.available_servers', [
+            '{servers_list}' => $serversList,
+            '{protocols}' => $protocols,
+        ]);
     }
 }
