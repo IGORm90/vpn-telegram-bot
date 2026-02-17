@@ -16,7 +16,12 @@ class CacheService
      */
     public function get(string $key, $default = null)
     {
-        return Cache::get($key, $default);
+        try {
+            return Cache::get($key, $default);
+        } catch (\Exception $e) {
+            report($e);
+            return $default;
+        }
     }
 
     /**
@@ -29,11 +34,16 @@ class CacheService
      */
     public function set(string $key, $value, ?int $ttl = null): bool
     {
-        if ($ttl === null) {
-            return Cache::forever($key, $value);
-        }
+        try {
+            if ($ttl === null) {
+                return Cache::forever($key, $value);
+            }
 
-        return Cache::put($key, $value, $ttl);
+            return Cache::put($key, $value, $ttl);
+        } catch (\Exception $e) {
+            report($e);
+            return false;
+        }
     }
 
     /**
@@ -55,7 +65,12 @@ class CacheService
      */
     public function forget(string $key): bool
     {
-        return Cache::forget($key);
+        try {
+            return Cache::forget($key);
+        } catch (\Exception $e) {
+            report($e);
+            return false;
+        }
     }
 
     /**
@@ -68,7 +83,12 @@ class CacheService
      */
     public function remember(string $key, int $ttl, callable $callback)
     {
-        return Cache::remember($key, $ttl, $callback);
+        try {
+            return Cache::remember($key, $ttl, $callback);
+        } catch (\Exception $e) {
+            report($e);
+            return $callback();
+        }
     }
 
     /**
