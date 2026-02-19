@@ -13,6 +13,13 @@
 |
 */
 
+// Landing page
+$router->get('/', function () {
+    return response(file_get_contents(__DIR__ . '/../public/landing.html'), 200, [
+        'Content-Type' => 'text/html; charset=UTF-8',
+    ]);
+});
+
 // Health check endpoint
 $router->get('/health', function () {
     return response()->json(['status' => 'ok']);

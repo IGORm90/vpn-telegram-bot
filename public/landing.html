@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SWIFT VPN — Защищённое соединение и приватность в интернете</title>
+  <meta name="description" content="Скоростной VPN на протоколе VLESS. Надёжное шифрование трафика, анонимность в сети и стабильное соединение на любом устройстве. Первая неделя бесплатно." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy: #1e2d5a;
+      --bright: #4169e1;
+      --light-blue: #3b5fc0;
+      --white: #ffffff;
+      --body-bg: #ffffff;
+      --text-main: #1a2340;
+      --text-muted: #64748b;
+      --card-bg: #f8faff;
+      --card-border: #e2e8f8;
+      --nav-bg: rgba(255,255,255,0.9);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--body-bg);
+      color: var(--text-main);
+      overflow-x: hidden;
+      line-height: 1.6;
+    }
+
+    /* ─── BACKGROUND ─── */
+    .bg-glow {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .bg-glow::before {
+      content: '';
+      position: absolute;
+      top: -20%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 900px;
+      height: 900px;
+      background: radial-gradient(circle, rgba(65,105,225,0.07) 0%, transparent 70%);
+      border-radius: 50%;
+    }
+    .bg-glow::after {
+      content: '';
+      position: absolute;
+      bottom: -10%;
+      right: -10%;
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(65,105,225,0.05) 0%, transparent 70%);
+      border-radius: 50%;
+    }
+
+    /* ─── NAV ─── */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      padding: 18px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      backdrop-filter: blur(20px);
+      background: var(--nav-bg);
+      border-bottom: 1px solid var(--card-border);
+      box-shadow: 0 1px 12px rgba(65,105,225,0.08);
+    }
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 800;
+      font-size: 1.2rem;
+      letter-spacing: 0.05em;
+      text-decoration: none;
+      color: var(--text-main);
+    }
+    .nav-logo img {
+      height: 36px;
+      width: auto;
+    }
+    .nav-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 22px;
+      background: var(--bright);
+      color: var(--white);
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      text-decoration: none;
+      transition: background 0.2s, transform 0.2s;
+    }
+    .nav-cta:hover { background: var(--light-blue); transform: translateY(-1px); }
+
+    /* ─── HERO ─── */
+    .hero {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 120px 24px 80px;
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      border-radius: 100px;
+      border: 1px solid rgba(65,105,225,0.25);
+      background: rgba(65,105,225,0.07);
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--bright);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 28px;
+    }
+    .hero-badge .dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: #4ade80;
+      animation: pulse-dot 2s infinite;
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(1.3); }
+    }
+    .hero-logo {
+      width: 200px;
+      height: auto;
+      margin-bottom: 32px;
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+    .hero h1 {
+      font-size: clamp(2.8rem, 7vw, 5rem);
+      font-weight: 900;
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+      margin-bottom: 24px;
+      color: var(--text-main);
+    }
+    .hero h1 span {
+      background: linear-gradient(135deg, #2d4eaa 0%, #4169e1 50%, #6f42c1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero-sub {
+      font-size: clamp(1rem, 2.5vw, 1.25rem);
+      color: var(--text-muted);
+      max-width: 520px;
+      margin: 0 auto 40px;
+    }
+    .hero-actions {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 60px;
+    }
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 16px 36px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--bright), #6f42c1);
+      color: var(--white);
+      font-weight: 700;
+      font-size: 1rem;
+      text-decoration: none;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 8px 32px rgba(65,105,225,0.4);
+    }
+    .btn-primary:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 16px 48px rgba(65,105,225,0.5);
+    }
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 16px 32px;
+      border-radius: 14px;
+      border: 1px solid var(--card-border);
+      background: var(--card-bg);
+      color: var(--text-main);
+      font-weight: 600;
+      font-size: 1rem;
+      text-decoration: none;
+      transition: border-color 0.2s, background 0.2s, transform 0.2s;
+    }
+    .btn-secondary:hover {
+      border-color: rgba(65,105,225,0.4);
+      background: rgba(65,105,225,0.06);
+      transform: translateY(-2px);
+    }
+    .hero-stats {
+      display: flex;
+      gap: 48px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .stat { text-align: center; }
+    .stat-num {
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+    .stat-label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* ─── SECTIONS ─── */
+    section {
+      position: relative;
+      z-index: 1;
+      padding: 100px 24px;
+    }
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .section-label {
+      text-align: center;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--light-blue);
+      margin-bottom: 12px;
+    }
+    .section-title {
+      text-align: center;
+      font-size: clamp(1.8rem, 4vw, 2.6rem);
+      font-weight: 800;
+      margin-bottom: 16px;
+      letter-spacing: -0.02em;
+      color: var(--text-main);
+    }
+    .section-desc {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 1rem;
+      max-width: 520px;
+      margin: 0 auto 56px;
+    }
+
+    /* ─── FEATURES ─── */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+    }
+    .feature-card {
+      padding: 32px;
+      border-radius: 20px;
+      border: 1px solid var(--card-border);
+      background: var(--card-bg);
+      transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+    }
+    .feature-card:hover {
+      border-color: rgba(65,105,225,0.3);
+      box-shadow: 0 8px 32px rgba(65,105,225,0.1);
+      transform: translateY(-4px);
+    }
+    .feature-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      background: rgba(65,105,225,0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      margin-bottom: 20px;
+    }
+    .feature-card h3 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+      color: var(--text-main);
+    }
+    .feature-card p {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      line-height: 1.7;
+    }
+
+    /* ─── FREE TRIAL BANNER ─── */
+    .trial-banner {
+      margin: 0 auto;
+      max-width: 780px;
+      padding: 48px 40px;
+      border-radius: 24px;
+      background: linear-gradient(135deg, rgba(65,105,225,0.07) 0%, rgba(111,66,193,0.07) 100%);
+      border: 1px solid rgba(65,105,225,0.18);
+      text-align: center;
+    }
+    .trial-banner .emoji-big { font-size: 3rem; margin-bottom: 20px; display: block; }
+    .trial-banner h2 {
+      font-size: clamp(1.5rem, 3.5vw, 2.2rem);
+      font-weight: 800;
+      margin-bottom: 14px;
+      letter-spacing: -0.02em;
+      color: var(--text-main);
+    }
+    .trial-banner p {
+      color: var(--text-muted);
+      font-size: 1rem;
+      margin-bottom: 32px;
+      max-width: 440px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .trial-highlight {
+      display: inline-block;
+      background: linear-gradient(135deg, #4ade80, #22d3ee);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      font-weight: 900;
+    }
+
+    /* ─── HOW IT WORKS ─── */
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+      counter-reset: step-counter;
+    }
+    .step-card {
+      padding: 32px 28px;
+      border-radius: 20px;
+      border: 1px solid var(--card-border);
+      background: var(--card-bg);
+      position: relative;
+      counter-increment: step-counter;
+    }
+    .step-card::before {
+      content: counter(step-counter);
+      position: absolute;
+      top: 24px;
+      right: 24px;
+      font-size: 4rem;
+      font-weight: 900;
+      color: rgba(65,105,225,0.08);
+      line-height: 1;
+    }
+    .step-num {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: var(--bright);
+      color: white;
+      font-weight: 700;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+    .step-card h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+      color: var(--text-main);
+    }
+    .step-card p {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      line-height: 1.7;
+    }
+    .step-card .app-links {
+      margin-top: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .step-card .app-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.82rem;
+      color: var(--bright);
+      font-weight: 600;
+    }
+
+    /* ─── PLATFORMS ─── */
+    .platforms-row {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+    .platform-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 28px;
+      border-radius: 100px;
+      border: 1px solid var(--card-border);
+      background: var(--card-bg);
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: var(--text-main);
+    }
+    .platform-pill .platform-icon { font-size: 1.4rem; }
+    .platform-pill--link {
+      text-decoration: none;
+      color: var(--text-main);
+      flex-direction: row;
+      align-items: center;
+      transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+    }
+    .platform-pill--link:hover {
+      border-color: rgba(65,105,225,0.4);
+      box-shadow: 0 4px 16px rgba(65,105,225,0.1);
+      transform: translateY(-2px);
+    }
+    .platform-pill--link > span:last-child {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.2;
+    }
+    .platform-os {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+    .platform-app {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    /* ─── PRICING ─── */
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .price-card {
+      padding: 36px 30px;
+      border-radius: 24px;
+      border: 1px solid var(--card-border);
+      background: var(--card-bg);
+      text-align: center;
+      transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+    }
+    .price-card:hover { transform: translateY(-4px); box-shadow: 0 8px 32px rgba(65,105,225,0.1); }
+    .price-card.featured {
+      border-color: rgba(65,105,225,0.35);
+      background: linear-gradient(135deg, rgba(65,105,225,0.06), rgba(111,66,193,0.04));
+      position: relative;
+    }
+    .price-card.featured::before {
+      content: 'Популярный';
+      position: absolute;
+      top: -14px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--bright);
+      color: white;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 4px 16px;
+      border-radius: 100px;
+      white-space: nowrap;
+    }
+    .price-name {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+    .price-amount {
+      font-size: 2.8rem;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      line-height: 1;
+      margin-bottom: 6px;
+      color: var(--text-main);
+    }
+    .price-period {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 28px;
+    }
+    .price-features {
+      list-style: none;
+      margin-bottom: 28px;
+      text-align: left;
+    }
+    .price-features li {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      padding: 6px 0;
+    }
+    .price-features li::before {
+      content: '✓';
+      color: #4ade80;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .price-btn {
+      display: block;
+      width: 100%;
+      padding: 13px;
+      border-radius: 12px;
+      border: 1px solid rgba(65,105,225,0.35);
+      background: transparent;
+      color: var(--bright);
+      font-weight: 600;
+      font-size: 0.9rem;
+      text-align: center;
+      text-decoration: none;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s, transform 0.2s;
+    }
+    .price-btn:hover { background: rgba(65,105,225,0.08); border-color: var(--bright); transform: translateY(-1px); }
+    .price-card.featured .price-btn {
+      background: var(--bright);
+      border-color: var(--bright);
+      color: #ffffff;
+    }
+    .price-card.featured .price-btn:hover { background: var(--light-blue); border-color: var(--light-blue); color: #ffffff; }
+
+    /* ─── REFERRAL ─── */
+    .referral-card {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 44px 40px;
+      border-radius: 24px;
+      border: 1px solid rgba(65,105,225,0.15);
+      background: linear-gradient(135deg, rgba(74,222,128,0.05), rgba(65,105,225,0.05));
+      text-align: center;
+    }
+    .referral-card .big-emoji { font-size: 3.5rem; margin-bottom: 20px; display: block; }
+    .referral-card h2 {
+      font-size: clamp(1.4rem, 3vw, 2rem);
+      font-weight: 800;
+      margin-bottom: 14px;
+      color: var(--text-main);
+    }
+    .referral-card p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      max-width: 420px;
+      margin: 0 auto 28px;
+    }
+
+    /* ─── CTA SECTION ─── */
+    .cta-section {
+      text-align: center;
+      padding: 100px 24px;
+    }
+    .cta-section h2 {
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      margin-bottom: 20px;
+      color: var(--text-main);
+    }
+    .cta-section p {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+      max-width: 480px;
+      margin: 0 auto 40px;
+    }
+
+    /* ─── FOOTER ─── */
+    footer {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      padding: 40px 24px;
+      border-top: 1px solid var(--card-border);
+      background: var(--body-bg);
+    }
+    footer .footer-logo {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    footer .footer-logo img { height: 28px; }
+    footer .footer-logo span { font-weight: 800; font-size: 1rem; color: var(--text-main); }
+    footer p {
+      color: var(--text-muted);
+      font-size: 0.82rem;
+    }
+    footer a { color: var(--bright); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    /* ─── DIVIDER ─── */
+    .divider {
+      width: 60px;
+      height: 3px;
+      border-radius: 100px;
+      background: linear-gradient(90deg, var(--bright), #a78bfa);
+      margin: 0 auto 48px;
+    }
+
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 640px) {
+      nav { padding: 14px 20px; }
+      .hero-stats { gap: 28px; }
+      .trial-banner { padding: 36px 24px; }
+      .referral-card { padding: 36px 24px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="bg-glow"></div>
+
+<!-- NAV -->
+<nav>
+  <a href="/" class="nav-logo">
+    <img src="/clear_logo.svg" alt="SWIFT VPN" />
+    SWIFT VPN
+  </a>
+  <a href="https://t.me/swift_free_vpn_bot" target="_blank" class="nav-cta">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.941z"/></svg>
+    Подключиться безопасно
+  </a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">
+    <span class="dot"></span>
+    Шифрование · VLESS · Без логов
+  </div>
+  <img src="/clear_logo.svg" alt="SWIFT VPN Logo" class="hero-logo" />
+  <h1>Ваши данные —<br /><span>только ваши</span></h1>
+  <p class="hero-sub">
+    Стойкое шифрование трафика. Анонимность в любой сети.
+    Настройка за&nbsp;2&nbsp;минуты на Android и iOS.
+  </p>
+  <div class="hero-actions">
+    <a href="https://t.me/swift_free_vpn_bot" target="_blank" class="btn-primary">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.941z"/></svg>
+      Попробовать бесплатно
+    </a>
+    <a href="#how-it-works" class="btn-secondary">
+      Как это работает?
+    </a>
+  </div>
+  <div class="hero-stats">
+    <div class="stat">
+      <div class="stat-num">2 мин</div>
+      <div class="stat-label">до защиты</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">1 нед</div>
+      <div class="stat-label">бесплатно</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">VLESS</div>
+      <div class="stat-label">протокол</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">0₽</div>
+      <div class="stat-label">для старта</div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section>
+  <div class="container">
+    <div class="section-label">Почему SWIFT VPN</div>
+    <h2 class="section-title">Технологии,<br />которые защищают</h2>
+    <div class="divider"></div>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">⚡</div>
+        <h3>Стабильная высокая скорость</h3>
+        <p>VLESS-протокол нового поколения. Минимальная задержка и стабильный пинг — даже при высокой нагрузке на канал.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔒</div>
+        <h3>Защита в публичных сетях</h3>
+        <p>Ваш трафик зашифрован в аэропортах, кафе и отелях. Никто не перехватит пароли, переписку или рабочие данные.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">👁️</div>
+        <h3>Без слежки рекламных сетей</h3>
+        <p>Скрываем ваш реальный IP-адрес. Рекламные трекеры и аналитические системы не смогут собирать ваш цифровой профиль.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🤖</div>
+        <h3>Управление в Telegram</h3>
+        <p>Получайте конфиги и управляйте подпиской прямо в мессенджере. Никаких личных кабинетов — всё в боте за 4 шага.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🎁</div>
+        <h3>7 дней бесплатно</h3>
+        <p>Каждый новый пользователь получает неделю полного доступа сразу после запуска бота. Карта не нужна.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔗</div>
+        <h3>Приведи друга — оба в плюсе</h3>
+        <p>Поделитесь реферальной ссылкой из бота и получайте дополнительные недели подписки за каждого приглашённого.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FREE TRIAL BANNER -->
+<section style="padding-top: 0;">
+  <div class="container">
+    <div class="trial-banner">
+      <span class="emoji-big">🛡️</span>
+      <h2>
+        <span class="trial-highlight">7 дней</span> защищённого интернета — бесплатно
+      </h2>
+      <p>Запустите бота и сразу получите полный доступ на неделю. Без привязки карты, без обязательств.</p>
+      <a href="https://t.me/swift_free_vpn_bot" target="_blank" class="btn-primary">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.941z"/></svg>
+        Попробовать бесплатно
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how-it-works">
+  <div class="container">
+    <div class="section-label">Быстрый старт</div>
+    <h2 class="section-title">Защита за 4 простых шага</h2>
+    <p class="section-desc">Настройка занимает не более 2 минут. Работает на любом смартфоне.</p>
+    <div class="steps">
+      <div class="step-card">
+        <div class="step-num">1</div>
+        <h3>Установите VPN-клиент</h3>
+        <p>Для работы потребуется любое приложение с поддержкой протокола <strong>VLESS</strong>. Найти его можно в официальном магазине приложений вашего устройства.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">2</div>
+        <h3>Получите конфиг в боте</h3>
+        <p>Запустите <a href="https://t.me/swift_free_vpn_bot" target="_blank" style="color:var(--bright)">@swift_free_vpn_bot</a>, нажмите «Подключить VPN» → «Получить VLESS конфиг» и скопируйте строку <code style="color:var(--bright);font-size:0.8rem">vless://...</code></p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">3</div>
+        <h3>Импортируйте одной кнопкой</h3>
+        <p>Откройте приложение, нажмите <strong>➕</strong> и выберите «Импорт из буфера обмена». Конфиг добавится автоматически.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">4</div>
+        <h3>Включите защиту</h3>
+        <p>Нажмите кнопку подключения. Готово — ваш трафик зашифрован. Проверьте на <a href="https://ipleak.net" target="_blank" style="color:var(--bright)">ipleak.net</a> ✅</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PLATFORMS -->
+<section style="padding-top: 0;">
+  <div class="container">
+    <div class="section-label" style="margin-bottom: 32px;">Скачать клиент</div>
+    <div class="platforms-row">
+      <a href="https://github.com/2dust/v2rayN/releases" target="_blank" class="platform-pill platform-pill--link">
+        <span class="platform-icon">🪟</span>
+        <span>
+          <span class="platform-os">Windows</span>
+          <span class="platform-app">v2rayN</span>
+        </span>
+      </a>
+      <a href="https://apps.apple.com/fi/app/v2box-v2ray-client/id6446814690" target="_blank" class="platform-pill platform-pill--link">
+        <span class="platform-icon">📱</span>
+        <span>
+          <span class="platform-os">iOS</span>
+          <span class="platform-app">V2Box</span>
+        </span>
+      </a>
+      <a href="https://apps.apple.com/fi/app/v2box-v2ray-client/id6446814690" target="_blank" class="platform-pill platform-pill--link">
+        <span class="platform-icon">🍎</span>
+        <span>
+          <span class="platform-os">macOS</span>
+          <span class="platform-app">V2Box</span>
+        </span>
+      </a>
+      <a href="https://play.google.com/store/apps/details?id=com.happproxy" target="_blank" class="platform-pill platform-pill--link">
+        <span class="platform-icon">🤖</span>
+        <span>
+          <span class="platform-os">Android</span>
+          <span class="platform-app">Happ</span>
+        </span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- FOR WHOM -->
+<section>
+  <div class="container">
+    <div class="section-label">Для кого</div>
+    <h2 class="section-title">Кому подойдёт SWIFT VPN</h2>
+    <p class="section-desc">Цифровая безопасность нужна каждому — независимо от того, чем вы занимаетесь.</p>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">💼</div>
+        <h3>Фрилансерам и удалёнщикам</h3>
+        <p>Безопасно подключайтесь к рабочим серверам и корпоративным ресурсам из любой точки — дома, в кафе или за рубежом.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">✈️</div>
+        <h3>Путешественникам</h3>
+        <p>Защитите данные при подключении к публичному Wi-Fi в аэропортах, отелях и торговых центрах. Ваши данные в безопасности.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">👨‍💻</div>
+        <h3>Разработчикам</h3>
+        <p>Безопасный доступ к удалённым серверам, тестовым окружениям и dev-инфраструктуре. Работайте с чувствительными данными без риска утечки.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section style="padding-top: 0;">
+  <div class="container">
+    <div class="section-label">Тарифы</div>
+    <h2 class="section-title">Прозрачные цены</h2>
+    <p class="section-desc">7 дней бесплатно, чтобы убедиться лично. Потом — выберите удобный план.</p>
+    <div class="pricing-grid">
+      <div class="price-card">
+        <div class="price-name">Старт</div>
+        <div class="price-amount">Бесплатно</div>
+        <div class="price-period">7 дней при первом запуске</div>
+        <ul class="price-features">
+          <li>Полный доступ на 7 дней</li>
+          <li>VLESS-шифрование</li>
+          <li>Android и iOS</li>
+          <li>Без ограничений по скорости</li>
+        </ul>
+        <a href="https://t.me/swift_free_vpn_bot" target="_blank" class="price-btn">Начать бесплатно</a>
+      </div>
+      <div class="price-card featured">
+        <div class="price-name">Месяц</div>
+        <div class="price-amount">В боте</div>
+        <div class="price-period">Узнать цену в Telegram</div>
+        <ul class="price-features">
+          <li>30 дней защиты</li>
+          <li>VLESS-шифрование</li>
+          <li>Android и iOS</li>
+          <li>Без ограничений по скорости</li>
+          <li>Приоритетная поддержка</li>
+        </ul>
+        <a href="https://t.me/swift_free_vpn_bot" target="_blank" class="price-btn">Выбрать план</a>
+      </div>
+      <div class="price-card">
+        <div class="price-name">Год</div>
+        <div class="price-amount">В боте</div>
+        <div class="price-period">Максимальная выгода</div>
+        <ul class="price-features">
+          <li>365 дней защиты</li>
+          <li>VLESS-шифрование</li>
+          <li>Android и iOS</li>
+          <li>Без ограничений по скорости</li>
+          <li>Лучшая цена за день</li>
+        </ul>
+        <a href="https://t.me/swift_free_vpn_bot" target="_blank" class="price-btn">Выбрать план</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- REFERRAL -->
+<section style="padding-top: 0;">
+  <div class="container">
+    <div class="referral-card">
+      <span class="big-emoji">🎁</span>
+      <h2>Расскажи другу — оба в плюсе</h2>
+      <p>Поделитесь персональной ссылкой из бота. Каждый приглашённый друг принесёт вам дополнительную неделю подписки — автоматически.</p>
+      <a href="https://t.me/swift_free_vpn_bot" target="_blank" class="btn-primary">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.941z"/></svg>
+        Получить свою ссылку
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section class="cta-section">
+  <div class="container">
+    <h2>Защитите свои данные сегодня</h2>
+    <p>7 дней SWIFT VPN бесплатно — убедитесь сами. Никаких карт, никаких обязательств.</p>
+    <a href="https://t.me/swift_free_vpn_bot" target="_blank" class="btn-primary" style="font-size:1.1rem; padding: 18px 44px;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.941z"/></svg>
+      Начать защиту →
+    </a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">
+    <img src="/clear_logo.svg" alt="SWIFT VPN" />
+    <span>SWIFT VPN</span>
+  </div>
+  <p>
+    Telegram: <a href="https://t.me/swift_free_vpn_bot" target="_blank">@swift_free_vpn_bot</a>
+    &nbsp;·&nbsp;
+    Поддержка доступна в боте
+  </p>
+</footer>
+
+</body>
+</html>
