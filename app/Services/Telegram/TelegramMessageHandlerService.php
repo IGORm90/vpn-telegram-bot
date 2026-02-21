@@ -256,7 +256,7 @@ class TelegramMessageHandlerService
         
         if ($isNewUser) {
             // Базовый срок подписки - 2 недели
-            $expirationDays = 14;
+            $expirationDays = 7;
             $referralBonusApplied = false;
             
             // Обработка реферальной ссылки
