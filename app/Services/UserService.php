@@ -55,6 +55,12 @@ class UserService
 
                     return null;
                 }
+
+                $config = $this->vpnApiService->getUserConfig($user, $server);
+            }
+
+            if (!$config) {
+                return null;
             }
 
             return $config['uri'];

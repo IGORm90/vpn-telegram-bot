@@ -102,15 +102,15 @@ services:
       - redis_data:/data
     networks:
       - vpn-bot-network
-    command: redis-server --appendonly yes --maxmemory 128mb --maxmemory-policy allkeys-lru
+    command: redis-server --appendonly yes --maxmemory 96mb --maxmemory-policy allkeys-lru --stop-writes-on-bgsave-error no
     deploy:
       resources:
         limits:
           cpus: '0.25'
-          memory: 128M
+          memory: 256M
         reservations:
           cpus: '0.1'
-          memory: 64M
+          memory: 128M
 
   scheduler:
     build:
@@ -226,6 +226,8 @@ services:
     image: grafana/promtail:2.9.6
     container_name: vpn-bot-promtail
     restart: unless-stopped
+    environment:
+      - DOCKER_API_VERSION=1.44
     volumes:
       - ./docker/promtail/promtail-config.yml:/etc/promtail/config.yml:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
